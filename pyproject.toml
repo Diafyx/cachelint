@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cachelint"
+dynamic = ["version"]
+description = "Offline diagnosis of LLM prompt-cache misses"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+maintainers = [{ name = "Diafyx" }]
+keywords = ["llm", "prompt-caching", "diagnostics", "cli"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Diafyx/cachelint"
+Issues = "https://github.com/Diafyx/cachelint/issues"
+Source = "https://github.com/Diafyx/cachelint"
+
+[project.scripts]
+cachelint = "cachelint.cli:main"
+
+[dependency-groups]
+dev = [
+    "build>=1.2",
+    "mypy>=1.15",
+    "pytest>=8",
+    "pytest-cov>=6",
+    "ruff>=0.12",
+    "twine>=6",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "cachelint._version.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["cachelint*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+cachelint = ["py.typed"]
+
+[tool.ruff]
+line-length = 88
+src = ["src", "tests", "tools"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.mypy]
+files = ["src", "tests", "tools"]
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+
+[tool.coverage.run]
+branch = true
+source = ["cachelint"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 100

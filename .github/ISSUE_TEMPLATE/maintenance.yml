@@ -1,0 +1,41 @@
+name: Maintenance task
+description: Propose the smallest complete repository or package upkeep task.
+title: "maintenance: "
+labels: ["maintenance"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Operational problem
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Smallest complete change
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Area
+      placeholder: "packaging, CI, docs, or core"
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: Name checks that demonstrate the outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and rollback
+    validations:
+      required: true
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
