@@ -1,0 +1,47 @@
+name: Release checklist
+description: Track one version through preparation, publication, and verification.
+title: "release: "
+labels: ["release"]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: Target version and milestone
+      placeholder: "0.1.0a1; milestone 0.1.0a1"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: State the user-visible release outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: preparation
+    attributes:
+      label: Preparation
+      description: Cover merged scope, release PR, CI, security, and environment.
+    validations:
+      required: true
+  - type: textarea
+    id: publication
+    attributes:
+      label: Publication
+      description: Cover the reviewed tag, exact-version approval, and protected deployment.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Post-release verification
+      description: Cover PyPI files, hashes, provenance, install smoke test, and GitHub release.
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: Recovery
+      description: Explain what to do after a failed run or immutable PyPI upload.
+    validations:
+      required: true
