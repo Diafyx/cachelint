@@ -2,7 +2,7 @@
 
 cachelint is a Python package for diagnosing why LLM requests miss provider prompt caches. Its planned first useful release will compare request bodies offline and show where the stable prompt prefix changes.
 
-**Status:** pre-release. The Python API can ingest raw request bodies. The command-line interface still supports `--help` and `--version` only; request comparison, SDK recording, and PyPI publication are not available yet.
+**Status:** pre-release. The Python API can ingest and compare raw request bodies. The command-line interface still supports `--help` and `--version` only; analysis commands, SDK recording, and PyPI publication are not available yet.
 
 ## Requirements and current usage
 
@@ -38,6 +38,35 @@ print([segment.path for segment in canonical.segments])
 ```
 
 Use `provider="anthropic"` or `provider="openai"` when a body has no provider-specific marker. `InvalidRequestError` reports invalid shapes without echoing request values. The segment `value` and context inventory **do retain request content**; protect them as you would the original body. See the [ingestion guide](docs/ingestion.md) for accepted JSONL input, validation rules, and limits.
+
+## Comparing request prefixes in Python
+
+`compare_requests` accepts one or more canonical requests of the same provider and exact model. It returns the first difference in the modeled prompt prefix and reports context changes separately:
+
+```python
+from cachelint import canonicalize_request, compare_requests
+
+first = canonicalize_request(
+    {
+        "model": "demo",
+        "system": "You are helpful.",
+        "messages": [{"role": "user", "content": "Hello"}],
+    }
+)
+second = canonicalize_request(
+    {
+        "model": "demo",
+        "system": "You are careful.",
+        "messages": [{"role": "user", "content": "Hello"}],
+    }
+)
+result = compare_requests([first, second])
+print(result.prompt_status)  # diverged
+assert result.first_divergence is not None
+print(result.first_divergence.path, result.first_divergence.offset)  # system 8
+```
+
+The result contains safe paths, difference kinds, character offsets where available, context categories, coverage warnings, and evidence-based findings. It contains no prompt excerpts or raw values. See the [comparison guide](docs/comparison.md) for result semantics and privacy limits.
 
 ## Planned first analysis release
 
