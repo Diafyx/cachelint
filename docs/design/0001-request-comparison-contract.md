@@ -1,6 +1,6 @@
 # ADR 0001: Offline request comparison and privacy contract
 
-- **Status:** Proposed; merging this ADR accepts the decision
+- **Status:** Accepted
 - **Issue:** [#5](https://github.com/Diafyx/cachelint/issues/5)
 - **Target:** `0.1.0a1`
 - **Reviewed provider documentation:** 2026-10-16

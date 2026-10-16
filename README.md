@@ -2,7 +2,7 @@
 
 cachelint is a Python package for diagnosing why LLM requests miss provider prompt caches. Its planned first useful release will compare request bodies offline and show where the stable prompt prefix changes.
 
-**Status:** pre-release. The current command-line interface supports `--help` and `--version` only. Request analysis, SDK recording, and PyPI publication are not available yet.
+**Status:** pre-release. The Python API can ingest raw request bodies. The command-line interface still supports `--help` and `--version` only; request comparison, SDK recording, and PyPI publication are not available yet.
 
 ## Requirements and current usage
 
@@ -19,11 +19,31 @@ cachelint --version
 
 The `cachelint` distribution, `cachelint` import package, and `cachelint` CLI share the same name. The core package has no runtime dependencies.
 
+## Request ingestion in Python
+
+`canonicalize_request` validates one raw Anthropic Messages or OpenAI Chat Completions request body and returns ordered prompt segments, separate request context, and coverage warnings:
+
+```python
+from cachelint import canonicalize_request
+
+request = {
+    "model": "demo",
+    "system": "Follow the instructions.",
+    "messages": [{"role": "user", "content": "Hello"}],
+}
+canonical = canonicalize_request(request)
+print(canonical.provider)  # anthropic
+print([segment.path for segment in canonical.segments])
+# ['system', 'system', 'messages[0]']
+```
+
+Use `provider="anthropic"` or `provider="openai"` when a body has no provider-specific marker. `InvalidRequestError` reports invalid shapes without echoing request values. The segment `value` and context inventory **do retain request content**; protect them as you would the original body. See the [ingestion guide](docs/ingestion.md) for accepted JSONL input, validation rules, and limits.
+
 ## Planned first analysis release
 
-The `0.1.0a1` milestone targets offline JSONL analysis for Anthropic Messages and OpenAI Chat Completions request bodies. It will locate the first stable-prefix divergence and report actionable findings through `analyze` and `diff`. The canonicalization contract and privacy handling must be reviewed before those commands are implemented. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+The `0.1.0a1` milestone targets offline JSONL analysis for Anthropic Messages and OpenAI Chat Completions request bodies. It will locate the first stable-prefix divergence and report actionable findings through `analyze` and `diff`. The accepted canonicalization contract and privacy handling guide those commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
-The proposed [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior for review.
+The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.
 
 Request logs can contain prompts, credentials, personal data, and customer content. Do not commit raw logs or paste them into public issues.
 
