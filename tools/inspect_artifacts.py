@@ -60,6 +60,7 @@ def inspect(dist_dir: Path) -> None:
             raise ValueError("Core wheel unexpectedly declares runtime dependencies")
         required_wheel = {
             "cachelint/__init__.py",
+            "cachelint/_compare.py",
             "cachelint/_ingest.py",
             "cachelint/_version.py",
             "cachelint/cli.py",
@@ -86,6 +87,7 @@ def inspect(dist_dir: Path) -> None:
             "README.md",
             "pyproject.toml",
             "src/cachelint/__init__.py",
+            "src/cachelint/_compare.py",
             "src/cachelint/_ingest.py",
             "src/cachelint/_version.py",
             "src/cachelint/cli.py",

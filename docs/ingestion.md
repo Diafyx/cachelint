@@ -63,4 +63,5 @@ available, never the failing request line. Python callers already hold the
 original values; segment values and context **may contain prompts, credentials,
 or customer content**. Do not log or publish those objects. See the
 [privacy contract](design/0001-request-comparison-contract.md#paths-and-privacy)
-for the later CLI report rules.
+for the later CLI report rules. The [comparison guide](comparison.md) describes
+the Python result model built from these canonical requests.
