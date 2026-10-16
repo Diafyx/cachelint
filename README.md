@@ -2,7 +2,7 @@
 
 cachelint is a Python package for diagnosing why LLM requests miss provider prompt caches. Its planned first useful release will compare request bodies offline and show where the stable prompt prefix changes.
 
-**Status:** repository foundation in progress. The current command-line interface supports `--help` and `--version` only. Request analysis, SDK recording, and PyPI publication are not available yet.
+**Status:** pre-release. The current command-line interface supports `--help` and `--version` only. Request analysis, SDK recording, and PyPI publication are not available yet.
 
 ## Requirements and current usage
 
@@ -22,6 +22,8 @@ The `cachelint` distribution, `cachelint` import package, and `cachelint` CLI sh
 ## Planned first analysis release
 
 The `0.1.0a1` milestone targets offline JSONL analysis for Anthropic Messages and OpenAI Chat Completions request bodies. It will locate the first stable-prefix divergence and report actionable findings through `analyze` and `diff`. The canonicalization contract and privacy handling must be reviewed before those commands are implemented. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+
+The proposed [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior for review.
 
 Request logs can contain prompts, credentials, personal data, and customer content. Do not commit raw logs or paste them into public issues.
 
