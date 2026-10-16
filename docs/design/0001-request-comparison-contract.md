@@ -183,9 +183,11 @@ from typing import Literal
 
 Provider = Literal["anthropic", "openai"]
 
+
 def canonicalize_request(
     body: Mapping[str, object], *, provider: Provider | None = None
 ) -> CanonicalRequest: ...
+
 
 def compare_requests(
     requests: Sequence[CanonicalRequest],
