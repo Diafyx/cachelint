@@ -1,6 +1,6 @@
 # Release process
 
-This is the maintainer's reviewed release sequence. The initial repository foundation does not include a publishing workflow or authorize a release.
+This is the maintainer's reviewed release sequence. The initial repository foundation does not include a publishing workflow or authorize a release. The [trusted publication design](design/0002-trusted-pypi-publication-controls.md) defines the controls that the release-preparation workflow must implement.
 
 1. Complete every product issue in the version milestone. Keep a separate `release: VERSION` issue open through publication and verification.
 2. Merge a distinct release-preparation PR with the exact version, accurate metadata, compatibility notes, and curated release notes. Check supported Python CI, dependency and security findings, wheel and sdist contents, and the clean-wheel smoke test on the candidate commit.
