@@ -1,8 +1,8 @@
 # cachelint
 
-cachelint is a Python package for diagnosing why LLM requests miss provider prompt caches. Its planned first useful release will compare request bodies offline and show where the stable prompt prefix changes.
+cachelint is a Python package for investigating LLM prompt-cache misses. It compares request bodies offline and shows where the modeled prompt prefix changes.
 
-**Status:** pre-release. The Python API can ingest and compare raw request bodies. The command-line interface still supports `--help` and `--version` only; analysis commands, SDK recording, and PyPI publication are not available yet.
+**Status:** pre-release. The Python API and CLI can ingest and compare raw request bodies. SDK recording and PyPI publication are not available yet.
 
 ## Requirements and current usage
 
@@ -18,6 +18,26 @@ cachelint --version
 ```
 
 The `cachelint` distribution, `cachelint` import package, and `cachelint` CLI share the same name. The core package has no runtime dependencies.
+
+## Analyze files from the CLI
+
+Save one complete raw request body per nonblank line in a UTF-8 JSONL file, then run:
+
+```console
+cachelint analyze requests.jsonl
+cachelint analyze requests.jsonl --provider openai
+```
+
+To compare two separate JSON files, each containing one complete request body (pretty printing is allowed):
+
+```console
+cachelint diff first.json second.json
+cachelint diff first.json second.json --provider anthropic
+```
+
+The default provider choice is `auto`. Bodies without a provider-specific marker need `--provider anthropic` or `--provider openai`; conflicting markers are rejected. A comparison requires the same provider and exact model in every request. Output includes the provider, request count, prompt status, common prefix segment count, first safe divergence path and character offset when available, context categories, coverage warnings, and fixed findings. It never prints request values or excerpts. `cachelint analyze` compares every valid JSONL request as one group; one request reports `insufficient_data`.
+
+Exit status `0` means a valid analysis, including a divergence or insufficient data. Status `2` means invalid arguments or input, including unreadable files; status `1` means an unexpected internal failure. Invalid input produces no partial report. A matching modeled prefix does not guarantee a provider cache hit. See the [ingestion guide](docs/ingestion.md) and [comparison guide](docs/comparison.md) for input rules and finding meanings.
 
 ## Request ingestion in Python
 
@@ -68,9 +88,9 @@ print(result.first_divergence.path, result.first_divergence.offset)  # system 8
 
 The result contains safe paths, difference kinds, character offsets where available, context categories, coverage warnings, and evidence-based findings. It contains no prompt excerpts or raw values. See the [comparison guide](docs/comparison.md) for result semantics and privacy limits.
 
-## Planned first analysis release
+## First analysis release scope
 
-The `0.1.0a1` milestone targets offline JSONL analysis for Anthropic Messages and OpenAI Chat Completions request bodies. It will locate the first stable-prefix divergence and report actionable findings through `analyze` and `diff`. The accepted canonicalization contract and privacy handling guide those commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+The `0.1.0a1` milestone targets offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.
 

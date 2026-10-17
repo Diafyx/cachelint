@@ -207,8 +207,7 @@ request format above.
 
 ## Worked examples
 
-These examples use synthetic content. They describe intended results, not
-current executable behavior.
+These examples use synthetic content and describe current CLI behavior.
 
 1. **Identical:** With `--provider openai`, two requests with the same
    `messages` and `tools`, but different JSON object member order, return

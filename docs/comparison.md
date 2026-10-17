@@ -76,4 +76,34 @@ Results contain **no request values, excerpts, tool names, arbitrary object
 keys, credentials, or persistent content hashes**. Safe paths contain only
 fixed API field names and numeric indexes. The input `CanonicalRequest`
 objects do retain sensitive values; protect them and any logs you create.
-`analyze` and `diff` terminal formatting will arrive under issue #8.
+## CLI report
+
+`cachelint analyze requests.jsonl` compares all nonblank requests as one group.
+`cachelint diff first.json second.json` compares exactly two request bodies.
+Both commands print the result fields above with fixed labels. For example, an
+Anthropic system-text change can produce:
+
+```text
+Provider: anthropic
+Requests: 2
+Prompt status: diverged
+Common prefix segments: 1
+First divergence: system (text_changed, offset 8)
+Context differences: none
+Coverage warnings: none
+Findings:
+  - prompt_text_changed: Text changes at the reported offset in the modeled prompt prefix.
+```
+
+`prompt_identical` means modeled segments match, with no cache-hit guarantee.
+`prompt_text_changed` identifies a character offset; `prompt_structure_changed`
+identifies another changed component; `prompt_inserted` and `prompt_removed`
+describe a shift relative to the first request. `context_changed` reports a
+separate request-setting difference. `coverage_limited` means opaque content or
+unknown context needs review. `insufficient_data` means only one request was
+available. A difference is diagnostic evidence, not a verified cache miss.
+
+The report never includes raw values or snippets. Input errors go to standard
+error with a filename and physical JSONL line when available, and exit with
+status `2`. Valid comparisons exit `0`, including identical and insufficient
+results. Unexpected internal failures exit `1` with a generic message.

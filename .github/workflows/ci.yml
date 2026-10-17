@@ -103,3 +103,8 @@ jobs:
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "from importlib.metadata import version; import cachelint; assert cachelint.__version__ == version('cachelint')"
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --help
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --version
+          printf '%s\n' '{"model":"demo","system":"Alpha","messages":[]}' '{"model":"demo","system":"Beta","messages":[]}' > requests.jsonl
+          printf '%s\n' '{"model":"demo","system":"Alpha","messages":[]}' > first.json
+          printf '%s\n' '{"model":"demo","system":"Beta","messages":[]}' > second.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" analyze requests.jsonl
+          "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" diff first.json second.json

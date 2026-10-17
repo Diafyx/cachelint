@@ -319,3 +319,20 @@ def read_jsonl(
     if not requests:
         raise InvalidRequestError("empty input", SourceLocation(source_path))
     return tuple(requests)
+
+
+def read_json(
+    path: str | Path, *, provider: Provider | None = None
+) -> CanonicalRequest:
+    """Read one raw request object from a UTF-8 file; this is a CLI internal."""
+    source = SourceLocation(str(path))
+    try:
+        with open(path, encoding="utf-8-sig", newline="") as stream:
+            contents = stream.read()
+    except UnicodeError:
+        raise InvalidRequestError("invalid UTF-8", source) from None
+    except OSError:
+        raise InvalidRequestError("unreadable input file", source) from None
+    if not contents.strip():
+        raise InvalidRequestError("empty input", source)
+    return _canonicalize_with_source(_parse_request(contents, source), provider, source)
