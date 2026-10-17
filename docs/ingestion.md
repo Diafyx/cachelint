@@ -1,9 +1,11 @@
 # Request ingestion
 
 The Python API accepts a **raw request body** for Anthropic Messages or OpenAI
-Chat Completions. It works offline and makes no provider cache-hit claim. The
-first CLI analysis release will read one such body per nonblank JSONL line.
-`analyze` and `diff` are still under development.
+Chat Completions. It works offline and makes no provider cache-hit claim.
+`cachelint analyze PATH` reads one such body per nonblank JSONL line.
+`cachelint diff LEFT RIGHT` reads one complete JSON object from each file;
+pretty-printed objects are allowed. Both commands accept
+`--provider {auto,anthropic,openai}`, defaulting to `auto`.
 
 ```jsonl
 {"model":"demo","system":"Follow the instructions.","messages":[{"role":"user","content":"Hello"}]}
@@ -35,8 +37,8 @@ else:
 `canonicalize_request` is exported from the package root, along with
 `CanonicalRequest`, `Segment`, `SourceLocation`, `InvalidRequestError`, and
 `IncomparableRequestsError`. The last error is used when a sequence mixes
-providers or models. The JSONL reader is currently a CLI internal, not a
-promised public API.
+providers or models. The JSONL and single-file readers are CLI internals, not
+promised public APIs.
 
 Each request has `provider`, `model`, ordered `segments`, `context`, and
 `coverage_warnings`. Each segment has a safe fixed-field `path`, a `kind`, and
@@ -63,5 +65,5 @@ available, never the failing request line. Python callers already hold the
 original values; segment values and context **may contain prompts, credentials,
 or customer content**. Do not log or publish those objects. See the
 [privacy contract](design/0001-request-comparison-contract.md#paths-and-privacy)
-for the later CLI report rules. The [comparison guide](comparison.md) describes
+for the CLI report rules. The [comparison guide](comparison.md) describes
 the Python result model built from these canonical requests.
