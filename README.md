@@ -2,7 +2,9 @@
 
 cachelint is a Python package for investigating LLM prompt-cache misses. It compares request bodies offline and shows where the modeled prompt prefix changes.
 
-**Status:** pre-release. The Python API and CLI can ingest and compare raw request bodies. SDK recording and PyPI publication are not available yet.
+**Status:** early alpha. Version `0.1.0a1` can ingest and compare raw request
+bodies through the Python API and CLI. SDK recording is planned for a later
+alpha release. See the [release notes](docs/releases/0.1.0a1.md).
 
 ## Requirements and current usage
 
