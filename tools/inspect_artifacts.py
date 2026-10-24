@@ -56,15 +56,23 @@ def inspect(dist_dir: Path) -> None:
         for field, expected in expected_fields.items():
             if metadata.get(field) != expected:
                 raise ValueError(f"Wheel {field} is not {expected!r}")
-        if metadata.get_all("Requires-Dist"):
-            raise ValueError("Core wheel unexpectedly declares runtime dependencies")
+        dependencies = metadata.get_all("Requires-Dist", [])
+        if (
+            metadata.get_all("Provides-Extra", []) != ["tokenizer"]
+            or len(dependencies) != 1
+            or not dependencies[0].startswith("tiktoken>=0.14")
+            or 'extra == "tokenizer"' not in dependencies[0]
+        ):
+            raise ValueError("Wheel optional dependency metadata differs")
         required_wheel = {
             "cachelint/__init__.py",
             "cachelint/_compare.py",
+            "cachelint/_estimate.py",
             "cachelint/_ingest.py",
             "cachelint/_version.py",
             "cachelint/cli.py",
             "cachelint/py.typed",
+            "cachelint/cache_rules.json",
         }
         if not required_wheel.issubset(names):
             raise ValueError("Wheel is missing package files")
@@ -88,10 +96,12 @@ def inspect(dist_dir: Path) -> None:
             "pyproject.toml",
             "src/cachelint/__init__.py",
             "src/cachelint/_compare.py",
+            "src/cachelint/_estimate.py",
             "src/cachelint/_ingest.py",
             "src/cachelint/_version.py",
             "src/cachelint/cli.py",
             "src/cachelint/py.typed",
+            "src/cachelint/cache_rules.json",
         }
         if not required_sdist.issubset(names):
             raise ValueError("Sdist is missing source or metadata files")

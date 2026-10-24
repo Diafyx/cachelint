@@ -47,6 +47,7 @@ no model values in the error. One request returns `insufficient_data`.
 | `context_differences` | `ContextDifference` entries naming fixed context categories; unknown keys collapse to `unmodeled_context`. |
 | `coverage_warnings` | Union of `opaque_content` and `unmodeled_context` warnings. |
 | `findings` | `Finding` entries with stable codes and fixed explanations of observed evidence. |
+| `prefix_estimate` | Advisory modeled-prefix length and optional exact-model minimum guidance; `None` for one request. See [length estimates](length-estimates.md). |
 
 The first request is the reference for `inserted` and `removed`. With three or
 more requests, the earliest segment difference from that reference wins; input
@@ -91,6 +92,9 @@ Common prefix segments: 1
 First divergence: system (text_changed, offset 8)
 Context differences: none
 Coverage warnings: none
+Stable prefix estimate: ~2 modeled tokens (heuristic; wide; content and provider framing can change the count)
+Documented model minimum: unknown
+Provider-reported cached usage: unavailable (request bodies only)
 Findings:
   - prompt_text_changed: Text changes at the reported offset in the modeled prompt prefix.
 ```

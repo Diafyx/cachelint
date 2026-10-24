@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal, cast
 
+from cachelint._estimate import EstimateMethod, PrefixEstimate, estimate_prefix
 from cachelint._ingest import (
     _KNOWN_CONTEXT,
     CanonicalRequest,
@@ -105,6 +106,7 @@ class ComparisonResult:
     context_differences: tuple[ContextDifference, ...]
     coverage_warnings: tuple[str, ...]
     findings: tuple[Finding, ...]
+    prefix_estimate: PrefixEstimate | None = None
 
 
 def _tag(value: object) -> str | None:
@@ -326,8 +328,14 @@ def _findings(
     return tuple(Finding(code, _FINDING_TEXT[code]) for code in codes)
 
 
-def compare_requests(requests: Sequence[CanonicalRequest]) -> ComparisonResult:
+def compare_requests(
+    requests: Sequence[CanonicalRequest],
+    *,
+    estimate_method: EstimateMethod = "heuristic",
+) -> ComparisonResult:
     """Find the earliest modeled prefix difference across one or more requests."""
+    if estimate_method not in ("heuristic", "tiktoken"):
+        raise InvalidRequestError("unsupported estimate method")
     group = tuple(requests)
     if not group:
         raise InvalidRequestError("at least one canonical request is required")
@@ -360,22 +368,32 @@ def compare_requests(requests: Sequence[CanonicalRequest]) -> ComparisonResult:
         status: PromptStatus = "insufficient_data"
         divergence = None
         common = 0
+        prefix_estimate = None
     else:
-        first = min(
-            (
-                difference
-                for request in group[1:]
-                if (
-                    difference := _pair_difference(reference.segments, request.segments)
-                )
-                is not None
-            ),
-            key=lambda item: item[0],
-            default=None,
-        )
+        differences = [
+            difference
+            for request in group[1:]
+            if (difference := _pair_difference(reference.segments, request.segments))
+            is not None
+        ]
+        first = min(differences, key=lambda item: item[0], default=None)
         status = "diverged" if first is not None else "identical"
         common = first[0] if first is not None else len(reference.segments)
         divergence = first[1] if first is not None else None
+        partial: tuple[str, int] | None = None
+        if first is not None and first[1].kind == "text_changed":
+            at_first = [item[1] for item in differences if item[0] == common]
+            if all(
+                item.kind == "text_changed"
+                and item.path == first[1].path
+                and item.offset is not None
+                for item in at_first
+            ):
+                partial = (
+                    first[1].path,
+                    min(cast(int, item.offset) for item in at_first),
+                )
+        prefix_estimate = estimate_prefix(reference, common, partial, estimate_method)
     return ComparisonResult(
         reference.provider,
         len(group),
@@ -385,4 +403,5 @@ def compare_requests(requests: Sequence[CanonicalRequest]) -> ComparisonResult:
         context,
         warnings,
         _findings(status, divergence, context, warnings),
+        prefix_estimate,
     )

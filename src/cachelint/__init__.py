@@ -7,6 +7,7 @@ from cachelint._compare import (
     Finding,
     compare_requests,
 )
+from cachelint._estimate import PrefixEstimate
 from cachelint._ingest import (
     CanonicalRequest,
     IncomparableRequestsError,
@@ -28,6 +29,7 @@ __all__ = [
     "IncomparableRequestsError",
     "InvalidRequestError",
     "Provider",
+    "PrefixEstimate",
     "Segment",
     "SourceLocation",
     "canonicalize_request",

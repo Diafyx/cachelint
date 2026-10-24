@@ -35,6 +35,9 @@ Source = "https://github.com/Diafyx/cachelint"
 [project.scripts]
 cachelint = "cachelint.cli:main"
 
+[project.optional-dependencies]
+tokenizer = ["tiktoken>=0.14"]
+
 [dependency-groups]
 dev = [
     "build>=1.2",
@@ -54,7 +57,7 @@ include = ["cachelint*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-cachelint = ["py.typed"]
+cachelint = ["py.typed", "*.json"]
 
 [tool.ruff]
 line-length = 88
