@@ -23,6 +23,12 @@ def _provider_option(parser: argparse.ArgumentParser) -> None:
         default="auto",
         help="request provider (default: auto; specify one for ambiguous bodies)",
     )
+    parser.add_argument(
+        "--estimate-method",
+        choices=("heuristic", "tiktoken"),
+        default="heuristic",
+        help="prefix-length method (default: heuristic; tiktoken optional for OpenAI)",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -64,6 +70,33 @@ def _print_result(result: ComparisonResult) -> None:
     print(f"Context differences: {context or 'none'}")
     warnings = ", ".join(result.coverage_warnings)
     print(f"Coverage warnings: {warnings or 'none'}")
+    estimate = result.prefix_estimate
+    if estimate is None:
+        print("Stable prefix estimate: unavailable (need two requests)")
+    else:
+        print(
+            f"Stable prefix estimate: ~{estimate.tokens} modeled tokens "
+            f"({estimate.method}; {estimate.uncertainty})"
+        )
+        if estimate.minimum_cacheable_tokens is None:
+            print("Documented model minimum: unknown")
+        else:
+            print(
+                "Documented model minimum: "
+                f"{estimate.minimum_cacheable_tokens} tokens "
+                f"(reviewed {estimate.rules_reviewed_on})"
+            )
+            print(
+                "Estimate vs minimum: "
+                + (
+                    "at or above"
+                    if estimate.minimum_comparison == "estimate_at_or_above"
+                    else "below"
+                )
+                + " (advisory only)"
+            )
+            print(f"Minimum source: {estimate.minimum_source}")
+    print("Provider-reported cached usage: unavailable (request bodies only)")
     print("Findings:")
     for finding in result.findings:
         print(f"  - {finding.code}: {finding.message}")
@@ -77,13 +110,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     provider = cast(Provider | None, None if args.provider == "auto" else args.provider)
     try:
         if args.command == "analyze":
-            result = compare_requests(read_jsonl(args.path, provider=provider))
+            result = compare_requests(
+                read_jsonl(args.path, provider=provider),
+                estimate_method=args.estimate_method,
+            )
         else:
             result = compare_requests(
                 [
                     read_json(args.left, provider=provider),
                     read_json(args.right, provider=provider),
-                ]
+                ],
+                estimate_method=args.estimate_method,
             )
         _print_result(result)
     except (InvalidRequestError, IncomparableRequestsError) as error:

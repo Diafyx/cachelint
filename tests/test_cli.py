@@ -137,6 +137,37 @@ def test_analyze_one_request_is_insufficient(
     assert "Requests: 1" in output
     assert "Prompt status: insufficient_data" in output
     assert "insufficient_data" in output
+    assert "Stable prefix estimate: unavailable" in output
+    assert "Provider-reported cached usage: unavailable" in output
+
+
+def test_diff_shows_advisory_known_model_minimum(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    first = _write_json(
+        tmp_path / "first.json", model="claude-sonnet-4-6", system="private A"
+    )
+    second = _write_json(
+        tmp_path / "second.json", model="claude-sonnet-4-6", system="private B"
+    )
+    assert main(["diff", str(first), str(second)]) == 0
+    output = capsys.readouterr().out
+    assert "Stable prefix estimate: ~" in output
+    assert "(heuristic; wide;" in output
+    assert "Documented model minimum: 1024 tokens (reviewed 2026-10-24)" in output
+    assert "Estimate vs minimum: below (advisory only)" in output
+    assert (
+        "Minimum source: https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
+        in output
+    )
+    assert "Provider-reported cached usage: unavailable" in output
+    assert "private" not in output
+
+    long_system = "a" * 4096
+    _write_json(first, model="claude-sonnet-4-6", system=long_system + "X")
+    _write_json(second, model="claude-sonnet-4-6", system=long_system + "Y")
+    assert main(["diff", str(first), str(second)]) == 0
+    assert "Estimate vs minimum: at or above (advisory only)" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
