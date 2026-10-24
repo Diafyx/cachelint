@@ -1,0 +1,233 @@
+name: Publish PyPI prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact reviewed package version
+        required: true
+        type: string
+      candidate_sha:
+        description: Full reviewed main commit SHA
+        required: true
+        type: string
+      confirmation:
+        description: Type publish VERSION exactly
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cachelint-pypi-release
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ inputs.version }}
+  CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+  CONFIRMATION: ${{ inputs.confirmation }}
+
+jobs:
+  preflight:
+    name: Check release gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+    steps:
+      - name: Check dispatch before checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "Diafyx/cachelint"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          test "$VERSION" = "0.1.0a1"
+          test "$CANDIDATE_SHA" = "$GITHUB_SHA"
+          test "$CONFIRMATION" = "publish $VERSION"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Verify GitHub, PyPI, and source state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/release_gate.py preflight
+
+  build:
+    name: Build reviewed artifacts
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Build wheel and sdist once
+        run: |
+          python -m pip install build twine
+          python -m build --sdist --wheel --outdir dist
+          python -m twine check dist/*
+          python tools/inspect_artifacts.py dist
+      - name: Smoke install wheel outside checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/cachelint-release-smoke"
+          "$RUNNER_TEMP/cachelint-release-smoke/bin/python" -m pip install --no-index --no-deps dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/cachelint-release-smoke/bin/python" -c "from importlib.metadata import version; import cachelint; assert cachelint.__version__ == version('cachelint')"
+          "$RUNNER_TEMP/cachelint-release-smoke/bin/cachelint" --version
+          printf '%s\n' '{"model":"demo","system":"Alpha","messages":[]}' '{"model":"demo","system":"Beta","messages":[]}' > requests.jsonl
+          "$RUNNER_TEMP/cachelint-release-smoke/bin/cachelint" analyze requests.jsonl
+      - name: Record exact artifact hashes
+        run: |
+          python tools/release_artifacts.py package dist release-artifact
+          cat release-artifact/SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: cachelint-0.1.0a1
+          path: release-artifact/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Approve and publish exact artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: pypi
+      url: https://pypi.org/p/cachelint
+    permissions:
+      actions: read
+      contents: read
+      issues: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cachelint-0.1.0a1
+          path: release-artifact
+      - name: Verify approval and artifact bytes
+        shell: bash
+        env:
+          RELEASE_APPROVED_VERSION: ${{ vars.RELEASE_APPROVED_VERSION }}
+        run: |
+          set -euo pipefail
+          test "$RELEASE_APPROVED_VERSION" = "0.1.0a1"
+          test "$VERSION" = "0.1.0a1"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_RUN_ATTEMPT" = "1"
+          test "$(find release-artifact -type f | wc -l)" -eq 3
+          test "$(find release-artifact/dist -maxdepth 1 -type f | wc -l)" -eq 2
+          test -f release-artifact/dist/cachelint-0.1.0a1-py3-none-any.whl
+          test -f release-artifact/dist/cachelint-0.1.0a1.tar.gz
+          test -f release-artifact/SHA256SUMS
+          cd release-artifact
+          test "$(wc -l < SHA256SUMS)" -eq 2
+          test "$(awk '{print $2}' SHA256SUMS | sort)" = "$(printf '%s\n' 'dist/cachelint-0.1.0a1-py3-none-any.whl' 'dist/cachelint-0.1.0a1.tar.gz' | sort)"
+          sha256sum --check --strict SHA256SUMS
+          cat SHA256SUMS
+      - name: Recheck remote state after environment approval
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$CANDIDATE_SHA" = "$GITHUB_SHA"
+          main_sha=$(gh api repos/Diafyx/cachelint/git/ref/heads/main --jq '.object.sha')
+          test "$main_sha" = "$CANDIDATE_SHA"
+          tag_object=$(gh api "repos/Diafyx/cachelint/git/ref/tags/v$VERSION" --jq '.object')
+          tag_type=$(jq -r '.type' <<< "$tag_object")
+          tag_sha=$(jq -r '.sha' <<< "$tag_object")
+          for _ in 1 2 3 4; do
+            if [[ "$tag_type" = commit ]]; then break; fi
+            test "$tag_type" = tag
+            tag_object=$(gh api "repos/Diafyx/cachelint/git/tags/$tag_sha" --jq '.object')
+            tag_type=$(jq -r '.type' <<< "$tag_object")
+            tag_sha=$(jq -r '.sha' <<< "$tag_object")
+          done
+          test "$tag_type" = commit
+          test "$tag_sha" = "$CANDIDATE_SHA"
+          test "$(gh api repos/Diafyx/cachelint/milestones/1 --jq '.state + " " + .title')" = "open 0.1.0a1"
+          test "$(gh api repos/Diafyx/cachelint/issues/2 --jq '.state + " " + .title + " " + (.milestone.number | tostring)')" = "open release: 0.1.0a1 1"
+          test "$(gh api repos/Diafyx/cachelint/issues/10 --jq '.state + " " + (.milestone.number | tostring)')" = "closed 1"
+          test "$(gh api 'repos/Diafyx/cachelint/issues?milestone=1&state=open&per_page=100' --jq 'length == 1 and .[0].number == 2')" = true
+          environment=$(gh api repos/Diafyx/cachelint/environments/pypi)
+          test "$(jq -r '.name' <<< "$environment")" = pypi
+          test "$(jq -r '.deployment_branch_policy.custom_branch_policies' <<< "$environment")" = true
+          test "$(jq -r '[.protection_rules[] | select(.type == "required_reviewers")] | length' <<< "$environment")" -eq 1
+          test "$(jq -r '[.protection_rules[] | select(.type == "required_reviewers")][0].prevent_self_review' <<< "$environment")" = false
+          test "$(jq -r '[.protection_rules[] | select(.type == "required_reviewers")][0].reviewers | length' <<< "$environment")" -eq 1
+          test "$(jq -r '[.protection_rules[] | select(.type == "required_reviewers")][0].reviewers[0].reviewer.login' <<< "$environment")" = SEPURI-SAI-KRISHNA
+          policies=$(gh api 'repos/Diafyx/cachelint/environments/pypi/deployment-branch-policies?per_page=100')
+          test "$(jq -r '.total_count' <<< "$policies")" -eq 1
+          test "$(jq -r '.branch_policies[0].name' <<< "$policies")" = main
+          test "$(jq -r '.branch_policies[0].type // "branch"' <<< "$policies")" = branch
+          status=$(curl --silent --show-error --max-time 20 --output "$RUNNER_TEMP/cachelint-pypi-name.json" --write-out '%{http_code}' https://pypi.org/pypi/cachelint/json)
+          test "$status" = 404
+      - name: Publish to PyPI with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: release-artifact/dist/
+          attestations: true
+
+  github_release:
+    name: Verify PyPI and create GitHub prerelease
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: cachelint-0.1.0a1
+          path: release-artifact
+      - name: Verify published and retained bytes
+        run: python tools/release_artifacts.py pypi release-artifact
+      - name: Create reviewed GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_url=$(gh release create "v$VERSION" \
+            release-artifact/dist/cachelint-0.1.0a1-py3-none-any.whl \
+            release-artifact/dist/cachelint-0.1.0a1.tar.gz \
+            --repo Diafyx/cachelint --verify-tag --prerelease \
+            --title "cachelint $VERSION" \
+            --notes-file docs/releases/0.1.0a1.md)
+          {
+            echo "## cachelint $VERSION prerelease"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "Commit: $CANDIDATE_SHA"
+            echo "Tag: v$VERSION"
+            echo "PyPI: https://pypi.org/project/cachelint/$VERSION/"
+            echo "GitHub release: $release_url"
+            echo 'SHA-256 manifest:'
+            echo '~~~text'
+            cat release-artifact/SHA256SUMS
+            echo '~~~'
+          } >> "$GITHUB_STEP_SUMMARY"

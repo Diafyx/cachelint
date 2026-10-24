@@ -1,6 +1,10 @@
 # Release process
 
-This is the maintainer's reviewed release sequence. The initial repository foundation does not include a publishing workflow or authorize a release. The [trusted publication design](design/0002-trusted-pypi-publication-controls.md) defines the controls that the release-preparation workflow must implement.
+This is the maintainer's reviewed release sequence. The
+[trusted publication design](design/0002-trusted-pypi-publication-controls.md)
+defines the controls implemented by `.github/workflows/release.yml`. The
+[0.1.0a1 release notes](releases/0.1.0a1.md) are the reviewed GitHub prerelease
+body. Merging the release-preparation PR does not publish anything.
 
 1. Complete every product issue in the version milestone. Keep a separate `release: VERSION` issue open through publication and verification.
 2. Merge a distinct release-preparation PR with the exact version, accurate metadata, compatibility notes, and curated release notes. Check supported Python CI, dependency and security findings, wheel and sdist contents, and the clean-wheel smoke test on the candidate commit.
@@ -11,3 +15,53 @@ This is the maintainer's reviewed release sequence. The initial repository found
 7. Verify PyPI metadata, files, hashes, provenance, a fresh installation, minimal usage, and the GitHub release. Record evidence in the release issue, remove one-time approval, then close the release issue and milestone.
 
 If a release run fails or is cancelled, confirm its terminal state before retrying. If a version reached PyPI, its files are immutable. Document the defect and prepare a new version or yank when justified; do not upload different bytes under the same version.
+
+## First publication setup for 0.1.0a1
+
+After issue #10 merges and its exact `main` CI run succeeds, review the release
+candidate commit, wheel, sdist, source version, metadata, README, license,
+CLI smoke test, supported Python matrix, dependency findings, and these notes.
+The workflow refuses publication while any 0.1.0a1 milestone issue except
+[release issue #2](https://github.com/Diafyx/cachelint/issues/2) is open.
+
+1. Create the GitHub `pypi` environment before any workflow dispatch. Set
+   required reviewer to `SEPURI-SAI-KRISHNA`, allow only the selected branch
+   `main`, and disable administrator bypass. With the current sole maintainer,
+   leave “Prevent self-review” off. Review those settings in the UI. The
+   workflow checks the reviewer and exact branch policy through GitHub's API;
+   review the branch policy type and no-bypass control manually because the
+   branch-policy list API can omit the type.
+2. Set up the two reviewed `v*` tag rulesets from
+   [ADR 0002](design/0002-trusted-pypi-publication-controls.md): only the
+   maintainer can create a tag, and nobody can update or delete one. Review
+   the active rulesets before pushing the release tag.
+3. Register the PyPI Trusted Publisher for project `cachelint`, GitHub owner
+   `Diafyx`, repository `cachelint`, workflow `release.yml`, and environment
+   `pypi`. For the first upload, use a pending publisher if the project does
+   not yet exist. Confirm the mapping in PyPI's UI and repeat the project name
+   check immediately before publishing. A pending publisher does not reserve
+   the name.
+4. Set the `pypi` environment variable `RELEASE_APPROVED_VERSION` to
+   `0.1.0a1` only after reviewing the exact candidate. Record its commit SHA.
+   Create the annotated `v0.1.0a1` tag at that commit and push the tag as a
+   distinct maintainer action. Read back the remote tag target.
+5. From `main`, dispatch **Publish PyPI prerelease** with version `0.1.0a1`,
+   the full 40-character candidate SHA, and confirmation
+   `publish 0.1.0a1`. The workflow has no push or PR trigger. It stops if
+   the branch, tag, version, CI, milestone, issues, environment, or PyPI name
+   differ. It builds one wheel and one sdist, verifies them, and retains
+   SHA-256 hashes in the `cachelint-0.1.0a1` workflow artifact.
+6. Before approving the waiting `pypi` job in the GitHub UI, compare the run
+   ID, SHA, tag, filenames, and manifest with your review. Approval is the
+   separate upload decision. The job rechecks the remote state and approval
+   variable, then uploads those exact files with PyPI Trusted Publishing.
+   The next job checks PyPI metadata and downloaded bytes before attaching
+   the same files to the GitHub prerelease.
+7. Verify the PyPI file hashes and provenance identity, a fresh install and
+   minimal CLI use, the GitHub prerelease, and its two attached files. Record
+   the links, SHA, manifest, and results in release issue #2. Remove the
+   one-time approval variable, then close the release issue and milestone.
+
+If upload starts but the run fails, first inspect PyPI for both filenames and
+their hashes. A partial upload cannot be safely retried under the same version.
+Keep release issue #2 open and follow the recovery rule in ADR 0002.
