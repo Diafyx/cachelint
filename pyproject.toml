@@ -37,6 +37,8 @@ cachelint = "cachelint.cli:main"
 
 [project.optional-dependencies]
 tokenizer = ["tiktoken>=0.14"]
+sdk-anthropic = ["anthropic==1.8.0"]
+sdk-openai = ["openai==3.37.0"]
 
 [dependency-groups]
 dev = [
