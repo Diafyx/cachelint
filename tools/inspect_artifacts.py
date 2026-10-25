@@ -58,10 +58,22 @@ def inspect(dist_dir: Path) -> None:
                 raise ValueError(f"Wheel {field} is not {expected!r}")
         dependencies = metadata.get_all("Requires-Dist", [])
         if (
-            metadata.get_all("Provides-Extra", []) != ["tokenizer"]
-            or len(dependencies) != 1
-            or not dependencies[0].startswith("tiktoken>=0.14")
-            or 'extra == "tokenizer"' not in dependencies[0]
+            set(metadata.get_all("Provides-Extra", []))
+            != {"tokenizer", "sdk-anthropic", "sdk-openai"}
+            or len(dependencies) != 3
+            or not any(
+                item.startswith("tiktoken>=0.14") and 'extra == "tokenizer"' in item
+                for item in dependencies
+            )
+            or not any(
+                item.startswith("anthropic==1.8.0")
+                and 'extra == "sdk-anthropic"' in item
+                for item in dependencies
+            )
+            or not any(
+                item.startswith("openai==3.37.0") and 'extra == "sdk-openai"' in item
+                for item in dependencies
+            )
         ):
             raise ValueError("Wheel optional dependency metadata differs")
         required_wheel = {
@@ -69,6 +81,7 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/_compare.py",
             "cachelint/_estimate.py",
             "cachelint/_ingest.py",
+            "cachelint/recording.py",
             "cachelint/_version.py",
             "cachelint/cli.py",
             "cachelint/py.typed",
@@ -93,11 +106,15 @@ def inspect(dist_dir: Path) -> None:
         required_sdist = {
             "LICENSE",
             "README.md",
+            "MANIFEST.in",
             "pyproject.toml",
+            "docs/recording.md",
+            "docs/design/0003-private-sdk-recording-contract.md",
             "src/cachelint/__init__.py",
             "src/cachelint/_compare.py",
             "src/cachelint/_estimate.py",
             "src/cachelint/_ingest.py",
+            "src/cachelint/recording.py",
             "src/cachelint/_version.py",
             "src/cachelint/cli.py",
             "src/cachelint/py.typed",

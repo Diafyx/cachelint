@@ -4,7 +4,8 @@ cachelint is a Python package for investigating LLM prompt-cache misses. It comp
 
 **Status:** early alpha. The package ingests and compares raw request bodies
 through the Python API and CLI, with advisory stable-prefix length estimates.
-SDK recording is planned for a later alpha release under the
+Opt-in SDK recording is available through the Python API for two pinned SDK
+versions under the
 [private recording contract](docs/design/0003-private-sdk-recording-contract.md).
 See the [0.1.0a2 release notes](docs/releases/0.1.0a2.md).
 
@@ -21,7 +22,7 @@ cachelint --help
 cachelint --version
 ```
 
-The `cachelint` distribution, `cachelint` import package, and `cachelint` CLI share the same name. The core package has no runtime dependencies. The optional OpenAI tokenizer integration can be installed with `python -m pip install 'cachelint[tokenizer]'`.
+The `cachelint` distribution, `cachelint` import package, and `cachelint` CLI share the same name. The core package has no runtime dependencies. The optional OpenAI tokenizer integration can be installed with `python -m pip install 'cachelint[tokenizer]'`. SDK recording extras are `cachelint[sdk-anthropic]` and `cachelint[sdk-openai]`; see the [recording guide](docs/recording.md) for exact versions and safety requirements.
 
 ## Analyze files from the CLI
 
@@ -63,6 +64,29 @@ print([segment.path for segment in canonical.segments])
 ```
 
 Use `provider="anthropic"` or `provider="openai"` when a body has no provider-specific marker. `InvalidRequestError` reports invalid shapes without echoing request values. The segment `value` and context inventory **do retain request content**; protect them as you would the original body. See the [ingestion guide](docs/ingestion.md) for accepted JSONL input, validation rules, and limits.
+
+## Record SDK requests for offline analysis
+
+Recording is off unless you explicitly create a recorder and pass its dedicated HTTP client to a new SDK client. For Anthropic, install `cachelint[sdk-anthropic]`, then:
+
+```python
+from pathlib import Path
+
+from anthropic import Anthropic
+from cachelint.recording import RequestRecorder
+
+path = Path("/private/requests.jsonl")  # existing private directory
+with RequestRecorder(path, provider="anthropic") as recorder:
+    with Anthropic(http_client=recorder.http_client()) as client:
+        client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=16,
+            messages=[{"role": "user", "content": "Example prompt"}],
+        )
+    print(recorder.status)
+```
+
+On Windows, use an absolute path under a directory whose ACL you have restricted and pass `allow_windows_acl_inheritance=True`; the flag does not inspect the ACL. Analyze only after the recorder closes: `cachelint analyze /private/requests.jsonl --provider anthropic`. Captured prompts remain sensitive, even when known credential fields are omitted. The [recording guide](docs/recording.md) covers the async API, OpenAI, warnings, file safety, and retention.
 
 ## Comparing request prefixes in Python
 

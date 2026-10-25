@@ -28,7 +28,7 @@ jobs:
       - name: Install development tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install --group dev -e .
+          python -m pip install --group dev -e '.[sdk-anthropic,sdk-openai]'
       - name: Format
         run: ruff format --check .
       - name: Lint
@@ -70,7 +70,7 @@ jobs:
       - name: Install package and tests
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest -e .
+          python -m pip install pytest -e '.[sdk-anthropic,sdk-openai]'
       - name: Test
         run: pytest
 
@@ -99,10 +99,14 @@ jobs:
         run: |
           python -m venv "$RUNNER_TEMP/cachelint-smoke"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -m pip install --no-index --no-deps dist/*.whl
+          python -m venv "$RUNNER_TEMP/cachelint-sdk-smoke"
+          WHEEL=$(echo dist/*.whl)
+          "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pip install "${WHEEL}[sdk-anthropic,sdk-openai]"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "from importlib.metadata import version; import cachelint; assert cachelint.__version__ == version('cachelint')"
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --help
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --version
+          "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -c "import anthropic, openai; from cachelint.recording import RequestRecorder, AsyncRequestRecorder; assert anthropic.__version__ == '1.8.0'; assert openai.__version__ == '3.37.0'"
           printf '%s\n' '{"model":"demo","system":"Alpha","messages":[]}' '{"model":"demo","system":"Beta","messages":[]}' > requests.jsonl
           printf '%s\n' '{"model":"demo","system":"Alpha","messages":[]}' > first.json
           printf '%s\n' '{"model":"demo","system":"Beta","messages":[]}' > second.json
