@@ -2,9 +2,10 @@
 
 cachelint is a Python package for investigating LLM prompt-cache misses. It compares request bodies offline and shows where the modeled prompt prefix changes.
 
-**Status:** early alpha. Version `0.1.0a1` can ingest and compare raw request
-bodies through the Python API and CLI. SDK recording is planned for a later
-alpha release. See the [release notes](docs/releases/0.1.0a1.md).
+**Status:** early alpha. The package ingests and compares raw request bodies
+through the Python API and CLI, with advisory stable-prefix length estimates.
+SDK recording is planned for a later alpha release. See the
+[0.1.0a2 release notes](docs/releases/0.1.0a2.md).
 
 ## Requirements and current usage
 
@@ -91,9 +92,9 @@ print(result.first_divergence.path, result.first_divergence.offset)  # system 8
 
 The result contains safe paths, difference kinds, character offsets where available, an advisory `prefix_estimate`, context categories, coverage warnings, and evidence-based findings. It contains no prompt excerpts or raw values. See the [comparison guide](docs/comparison.md) and [length estimate guide](docs/length-estimates.md) for result semantics and privacy limits.
 
-## First analysis release scope
+## Analysis scope
 
-The `0.1.0a1` milestone targets offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` adds advisory length guidance and an optional OpenAI tokenizer. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.
 

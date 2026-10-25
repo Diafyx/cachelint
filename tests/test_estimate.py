@@ -132,7 +132,7 @@ def test_known_model_minimum_is_advisory() -> None:
     )
     assert short.minimum_cacheable_tokens == 1024
     assert short.minimum_comparison == "estimate_below"
-    assert short.rules_reviewed_on == "2026-10-24"
+    assert short.rules_reviewed_on == "2026-10-25"
     assert (
         short.minimum_source
         == "https://developers.openai.com/api/docs/guides/prompt-caching"
