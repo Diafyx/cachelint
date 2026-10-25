@@ -1,4 +1,4 @@
-"""Read-only, fail-closed checks for the first PyPI release."""
+"""Read-only, fail-closed checks for the reviewed PyPI release."""
 
 from __future__ import annotations
 
@@ -14,10 +14,12 @@ from pathlib import Path
 from typing import Any, cast
 
 REPO = "Diafyx/cachelint"
-VERSION = "0.1.0a1"
-RELEASE_ISSUE = 2
-PREPARATION_ISSUE = 10
-MILESTONE = 1
+VERSION = "0.1.0a2"
+PREVIOUS_VERSION = "0.1.0a1"
+PYPI_OWNER = "saikrishnapypi"
+RELEASE_ISSUE = 12
+PREPARATION_ISSUE = 23
+MILESTONE = 2
 REQUIRED_JOBS = {
     "Quality and coverage",
     "Build and smoke test",
@@ -77,7 +79,8 @@ def github(path: str, token: str) -> dict[str, Any]:
     return cast("dict[str, Any]", result)
 
 
-def pypi_project_absent() -> bool:
+def check_pypi_project() -> None:
+    """Require the reviewed existing project and an unused target version."""
     request = urllib.request.Request(
         "https://pypi.org/pypi/cachelint/json",
         headers={"Accept": "application/json", "User-Agent": "cachelint-release-gate"},
@@ -85,15 +88,44 @@ def pypi_project_absent() -> bool:
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
             require(response.status == 200, "Unexpected PyPI response")
-            result = json.load(response)
-            require(isinstance(result, dict), "Invalid PyPI response")
-            return False
-    except urllib.error.HTTPError as error:
-        if error.code == 404:
-            return True
-        raise ReleaseGateError("PyPI name check failed") from error
+            project = json.load(response)
     except (urllib.error.URLError, ValueError) as error:
-        raise ReleaseGateError("PyPI name check failed") from error
+        raise ReleaseGateError("PyPI project read failed") from error
+    require(isinstance(project, dict), "Invalid PyPI project response")
+    info = project.get("info")
+    require(isinstance(info, dict), "PyPI project info is missing")
+    require(
+        info.get("name") == "cachelint"
+        and info.get("version") == PREVIOUS_VERSION
+        and isinstance(info.get("project_urls"), dict)
+        and info["project_urls"].get("Source") == f"https://github.com/{REPO}",
+        "PyPI project identity differs",
+    )
+    ownership = project.get("ownership")
+    require(isinstance(ownership, dict), "PyPI project ownership is missing")
+    roles = ownership.get("roles")
+    require(isinstance(roles, list), "PyPI project roles are missing")
+    owners = {
+        role.get("user")
+        for role in roles
+        if isinstance(role, dict) and role.get("role") == "Owner"
+    }
+    require(owners == {PYPI_OWNER}, "PyPI project owner differs")
+    releases = project.get("releases")
+    require(isinstance(releases, dict), "PyPI project releases are missing")
+    previous = releases.get(PREVIOUS_VERSION)
+    require(isinstance(previous, list), "Previous PyPI release is missing")
+    names = {file.get("filename") for file in previous if isinstance(file, dict)}
+    require(
+        len(previous) == 2
+        and names
+        == {
+            f"cachelint-{PREVIOUS_VERSION}-py3-none-any.whl",
+            f"cachelint-{PREVIOUS_VERSION}.tar.gz",
+        },
+        "Previous PyPI release files differ",
+    )
+    require(VERSION not in releases, "Target PyPI release already exists")
 
 
 def check_tag(get: Any, sha: str, version: str) -> None:
@@ -253,7 +285,7 @@ def check_release_state(get: Any, sha: str, version: str) -> None:
     require(main.get("object", {}).get("sha") == sha, "Main has moved")
     check_tag(get, sha, version)
     check_issues(get)
-    require(pypi_project_absent(), "PyPI name is already in use")
+    check_pypi_project()
 
 
 def preflight(get: Any, env: dict[str, str], root: Path) -> None:
@@ -275,6 +307,19 @@ def preflight(get: Any, env: dict[str, str], root: Path) -> None:
     check_environment(get)
 
 
+def recheck(get: Any, env: dict[str, str]) -> None:
+    """Repeat mutable release checks after protected-environment approval."""
+    sha = env.get("CANDIDATE_SHA", "")
+    require(env.get("RELEASE_APPROVED_VERSION") == VERSION, "Approval differs")
+    require(env.get("VERSION") == VERSION, "Version differs")
+    require(env.get("GITHUB_REPOSITORY") == REPO, "Wrong repository")
+    require(env.get("GITHUB_REF") == "refs/heads/main", "Wrong ref")
+    require(re.fullmatch(r"[0-9a-f]{40}", sha) is not None, "Candidate SHA is invalid")
+    require(env.get("GITHUB_SHA") == sha, "Candidate commit differs")
+    check_release_state(get, sha, VERSION)
+    check_environment(get)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", choices=("preflight", "recheck"))
@@ -289,15 +334,7 @@ def main() -> int:
         if args.phase == "preflight":
             preflight(get, dict(os.environ), Path(__file__).resolve().parents[1])
         else:
-            sha = os.environ.get("CANDIDATE_SHA", "")
-            require(
-                os.environ.get("RELEASE_APPROVED_VERSION") == VERSION,
-                "Approval differs",
-            )
-            require(os.environ.get("VERSION") == VERSION, "Version differs")
-            require(os.environ.get("GITHUB_REF") == "refs/heads/main", "Wrong ref")
-            check_release_state(get, sha, VERSION)
-            check_environment(get)
+            recheck(get, dict(os.environ))
         print(f"Release {args.phase} passed for {VERSION}")
         return 0
     except ReleaseGateError as error:

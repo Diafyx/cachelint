@@ -57,7 +57,7 @@ provider tokens, and providers may change eligibility or require other request
 settings. A result `estimate_at_or_above` is not a cache-hit prediction;
 `estimate_below` is not proof that the provider will reject caching. The
 CLI prints the source and review date for a known rule and `unknown` otherwise.
-The current rules were reviewed on 2026-10-24 against the
+The current rules were reviewed on 2026-10-25 against the
 [Anthropic prompt-caching guide](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
 and [OpenAI prompt-caching guide](https://developers.openai.com/api/docs/guides/prompt-caching).
 

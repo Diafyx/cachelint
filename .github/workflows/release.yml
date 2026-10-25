@@ -46,7 +46,7 @@ jobs:
           test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_RUN_ATTEMPT" = "1"
-          test "$VERSION" = "0.1.0a1"
+          test "$VERSION" = "0.1.0a2"
           test "$CANDIDATE_SHA" = "$GITHUB_SHA"
           test "$CONFIRMATION" = "publish $VERSION"
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -93,13 +93,15 @@ jobs:
           "$RUNNER_TEMP/cachelint-release-smoke/bin/cachelint" --version
           printf '%s\n' '{"model":"demo","system":"Alpha","messages":[]}' '{"model":"demo","system":"Beta","messages":[]}' > requests.jsonl
           "$RUNNER_TEMP/cachelint-release-smoke/bin/cachelint" analyze requests.jsonl
+          printf '%s\n' '{"model":"claude-sonnet-4-6","system":"shared A","messages":[]}' '{"model":"claude-sonnet-4-6","system":"shared B","messages":[]}' > known.jsonl
+          "$RUNNER_TEMP/cachelint-release-smoke/bin/cachelint" analyze known.jsonl | grep -F 'Documented model minimum: 1024 tokens'
       - name: Record exact artifact hashes
         run: |
           python tools/release_artifacts.py package dist release-artifact
           cat release-artifact/SHA256SUMS
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: cachelint-0.1.0a1
+          name: cachelint-0.1.0a2
           path: release-artifact/
           if-no-files-found: error
           retention-days: 14
@@ -120,7 +122,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: cachelint-0.1.0a1
+          name: cachelint-0.1.0a2
           path: release-artifact
       - name: Verify approval and artifact bytes
         shell: bash
@@ -128,18 +130,18 @@ jobs:
           RELEASE_APPROVED_VERSION: ${{ vars.RELEASE_APPROVED_VERSION }}
         run: |
           set -euo pipefail
-          test "$RELEASE_APPROVED_VERSION" = "0.1.0a1"
-          test "$VERSION" = "0.1.0a1"
+          test "$RELEASE_APPROVED_VERSION" = "0.1.0a2"
+          test "$VERSION" = "0.1.0a2"
           test "$GITHUB_REF" = "refs/heads/main"
           test "$GITHUB_RUN_ATTEMPT" = "1"
           test "$(find release-artifact -type f | wc -l)" -eq 3
           test "$(find release-artifact/dist -maxdepth 1 -type f | wc -l)" -eq 2
-          test -f release-artifact/dist/cachelint-0.1.0a1-py3-none-any.whl
-          test -f release-artifact/dist/cachelint-0.1.0a1.tar.gz
+          test -f release-artifact/dist/cachelint-0.1.0a2-py3-none-any.whl
+          test -f release-artifact/dist/cachelint-0.1.0a2.tar.gz
           test -f release-artifact/SHA256SUMS
           cd release-artifact
           test "$(wc -l < SHA256SUMS)" -eq 2
-          test "$(awk '{print $2}' SHA256SUMS | sort)" = "$(printf '%s\n' 'dist/cachelint-0.1.0a1-py3-none-any.whl' 'dist/cachelint-0.1.0a1.tar.gz' | sort)"
+          test "$(awk '{print $2}' SHA256SUMS | sort)" = "$(printf '%s\n' 'dist/cachelint-0.1.0a2-py3-none-any.whl' 'dist/cachelint-0.1.0a2.tar.gz' | sort)"
           sha256sum --check --strict SHA256SUMS
           cat SHA256SUMS
       - name: Recheck remote state after environment approval
@@ -163,10 +165,10 @@ jobs:
           done
           test "$tag_type" = commit
           test "$tag_sha" = "$CANDIDATE_SHA"
-          test "$(gh api repos/Diafyx/cachelint/milestones/1 --jq '.state + " " + .title')" = "open 0.1.0a1"
-          test "$(gh api repos/Diafyx/cachelint/issues/2 --jq '.state + " " + .title + " " + (.milestone.number | tostring)')" = "open release: 0.1.0a1 1"
-          test "$(gh api repos/Diafyx/cachelint/issues/10 --jq '.state + " " + (.milestone.number | tostring)')" = "closed 1"
-          test "$(gh api 'repos/Diafyx/cachelint/issues?milestone=1&state=open&per_page=100' --jq 'length == 1 and .[0].number == 2')" = true
+          test "$(gh api repos/Diafyx/cachelint/milestones/2 --jq '.state + " " + .title')" = "open 0.1.0a2"
+          test "$(gh api repos/Diafyx/cachelint/issues/12 --jq '.state + " " + .title + " " + (.milestone.number | tostring)')" = "open release: 0.1.0a2 2"
+          test "$(gh api repos/Diafyx/cachelint/issues/23 --jq '.state + " " + (.milestone.number | tostring)')" = "closed 2"
+          test "$(gh api 'repos/Diafyx/cachelint/issues?milestone=2&state=open&per_page=100' --jq 'length == 1 and .[0].number == 12')" = true
           environment=$(gh api repos/Diafyx/cachelint/environments/pypi)
           test "$(jq -r '.name' <<< "$environment")" = pypi
           test "$(jq -r '.deployment_branch_policy.custom_branch_policies' <<< "$environment")" = true
@@ -178,8 +180,17 @@ jobs:
           test "$(jq -r '.total_count' <<< "$policies")" -eq 1
           test "$(jq -r '.branch_policies[0].name' <<< "$policies")" = main
           test "$(jq -r '.branch_policies[0].type // "branch"' <<< "$policies")" = branch
-          status=$(curl --silent --show-error --max-time 20 --output "$RUNNER_TEMP/cachelint-pypi-name.json" --write-out '%{http_code}' https://pypi.org/pypi/cachelint/json)
-          test "$status" = 404
+          curl --fail --silent --show-error --max-time 20 \
+            --output "$RUNNER_TEMP/cachelint-pypi-project.json" \
+            https://pypi.org/pypi/cachelint/json
+          pypi="$RUNNER_TEMP/cachelint-pypi-project.json"
+          test "$(jq -r '.info.name' "$pypi")" = cachelint
+          test "$(jq -r '.info.version' "$pypi")" = 0.1.0a1
+          test "$(jq -r '.info.project_urls.Source' "$pypi")" = https://github.com/Diafyx/cachelint
+          test "$(jq -r '[.ownership.roles[] | select(.role == "Owner") | .user] | sort | join(",")' "$pypi")" = saikrishnapypi
+          test "$(jq -r '.releases["0.1.0a1"] | length' "$pypi")" -eq 2
+          test "$(jq -r '.releases["0.1.0a1"] | map(.filename) | sort | join(",")' "$pypi")" = cachelint-0.1.0a1-py3-none-any.whl,cachelint-0.1.0a1.tar.gz
+          test "$(jq -r --arg version "$VERSION" '.releases | has($version)' "$pypi")" = false
       - name: Publish to PyPI with Trusted Publishing
         uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
@@ -204,7 +215,7 @@ jobs:
           python-version: "3.11"
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: cachelint-0.1.0a1
+          name: cachelint-0.1.0a2
           path: release-artifact
       - name: Verify published and retained bytes
         run: python tools/release_artifacts.py pypi release-artifact
@@ -214,11 +225,11 @@ jobs:
         run: |
           set -euo pipefail
           release_url=$(gh release create "v$VERSION" \
-            release-artifact/dist/cachelint-0.1.0a1-py3-none-any.whl \
-            release-artifact/dist/cachelint-0.1.0a1.tar.gz \
+            release-artifact/dist/cachelint-0.1.0a2-py3-none-any.whl \
+            release-artifact/dist/cachelint-0.1.0a2.tar.gz \
             --repo Diafyx/cachelint --verify-tag --prerelease \
             --title "cachelint $VERSION" \
-            --notes-file docs/releases/0.1.0a1.md)
+            --notes-file docs/releases/0.1.0a2.md)
           {
             echo "## cachelint $VERSION prerelease"
             echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

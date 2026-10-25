@@ -3,8 +3,9 @@
 This is the maintainer's reviewed release sequence. The
 [trusted publication design](design/0002-trusted-pypi-publication-controls.md)
 defines the controls implemented by `.github/workflows/release.yml`. The
-[0.1.0a1 release notes](releases/0.1.0a1.md) are the reviewed GitHub prerelease
-body. Merging the release-preparation PR does not publish anything.
+[0.1.0a2 release notes](releases/0.1.0a2.md) are the reviewed GitHub prerelease
+body for the current candidate. Merging the release-preparation PR does not
+publish anything.
 
 1. Complete every product issue in the version milestone. Keep a separate `release: VERSION` issue open through publication and verification.
 2. Merge a distinct release-preparation PR with the exact version, accurate metadata, compatibility notes, and curated release notes. Check supported Python CI, dependency and security findings, wheel and sdist contents, and the clean-wheel smoke test on the candidate commit.
@@ -65,3 +66,48 @@ The workflow refuses publication while any 0.1.0a1 milestone issue except
 If upload starts but the run fails, first inspect PyPI for both filenames and
 their hashes. A partial upload cannot be safely retried under the same version.
 Keep release issue #2 open and follow the recovery rule in ADR 0002.
+
+## Second publication: 0.1.0a2
+
+The project already exists on PyPI. The current release gate checks its exact
+name, source repository, reviewed owner, and two `0.1.0a1` files, then requires
+`0.1.0a2` to be absent. It checks the same project again after deployment
+approval. On 2026-10-25 the public PyPI JSON API showed `0.1.0a1` as the only
+release, with owner `saikrishnapypi` and Source
+`https://github.com/Diafyx/cachelint`. The local package still needs the final
+candidate and publication review below. PyPI's
+[project JSON API](https://docs.pypi.org/api/json/) documents the fields; public
+metadata is a gate, not a substitute for reviewing the PyPI Trusted Publisher
+mapping and project ownership in the UI.
+
+1. Merge issue #23's release-preparation PR. Confirm the exact `main` commit has
+   green CI across the supported Python matrix and no unresolved relevant
+   security findings. Review the `0.1.0a2` wheel and sdist, optional dependency
+   metadata, rule data, notes, license, typing marker, and clean-wheel CLI smoke
+   test. Leave [release issue #12](https://github.com/Diafyx/cachelint/issues/12)
+   open.
+2. Recheck the protected `pypi` environment: only `main` may deploy, the
+   required reviewer is `SEPURI-SAI-KRISHNA`, administrator bypass is disabled,
+   and the existing Trusted Publisher still names owner `Diafyx`, repository
+   `cachelint`, workflow `release.yml`, and environment `pypi`. Review the
+   active `v*` tag rulesets. Set the short-lived environment variable
+   `RELEASE_APPROVED_VERSION` to `0.1.0a2` only for this candidate.
+3. At the reviewed `main` commit, create the annotated `v0.1.0a2` tag and push
+   it as a separate maintainer action. Read back its remote target. Never move
+   an existing release tag.
+4. Dispatch **Publish PyPI prerelease** from `main` with version `0.1.0a2`, the
+   full candidate SHA, and confirmation `publish 0.1.0a2`. The workflow refuses
+   a different branch, version, commit, tag, milestone, issue state, approval,
+   environment, existing PyPI project identity, or already present version.
+5. Review the run ID, SHA, tag, retained `cachelint-0.1.0a2` artifact, filenames,
+   and SHA-256 manifest before approving the waiting `pypi` deployment in the
+   GitHub UI. The job rechecks remote state and PyPI before Trusted Publishing.
+6. Verify PyPI metadata, provenance, exact file hashes, and a fresh core and
+   optional-extra install. Run documented CLI examples. Confirm the GitHub
+   prerelease and its two attached files match the retained manifest. Record
+   evidence in issue #12, remove `RELEASE_APPROVED_VERSION`, then close issue
+   #12 and milestone `0.1.0a2`.
+
+If the run fails, confirm it is terminal and inspect PyPI before retrying. If
+either `0.1.0a2` file was accepted, do not reuse that version; follow the
+recovery rule above.

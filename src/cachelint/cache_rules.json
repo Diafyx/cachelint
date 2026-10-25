@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-10-24",
+  "reviewed_on": "2026-10-25",
   "rules": [
     {
       "provider": "anthropic",

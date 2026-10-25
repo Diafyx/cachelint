@@ -154,7 +154,7 @@ def test_diff_shows_advisory_known_model_minimum(
     output = capsys.readouterr().out
     assert "Stable prefix estimate: ~" in output
     assert "(heuristic; wide;" in output
-    assert "Documented model minimum: 1024 tokens (reviewed 2026-10-24)" in output
+    assert "Documented model minimum: 1024 tokens (reviewed 2026-10-25)" in output
     assert "Estimate vs minimum: below (advisory only)" in output
     assert (
         "Minimum source: https://platform.claude.com/docs/en/build-with-claude/prompt-caching"
