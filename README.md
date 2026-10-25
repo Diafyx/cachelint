@@ -4,8 +4,9 @@ cachelint is a Python package for investigating LLM prompt-cache misses. It comp
 
 **Status:** early alpha. The package ingests and compares raw request bodies
 through the Python API and CLI, with advisory stable-prefix length estimates.
-SDK recording is planned for a later alpha release. See the
-[0.1.0a2 release notes](docs/releases/0.1.0a2.md).
+SDK recording is planned for a later alpha release under the
+[private recording contract](docs/design/0003-private-sdk-recording-contract.md).
+See the [0.1.0a2 release notes](docs/releases/0.1.0a2.md).
 
 ## Requirements and current usage
 
