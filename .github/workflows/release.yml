@@ -192,7 +192,7 @@ jobs:
           test "$(jq -r '.releases["0.1.0a1"] | map(.filename) | sort | join(",")' "$pypi")" = cachelint-0.1.0a1-py3-none-any.whl,cachelint-0.1.0a1.tar.gz
           test "$(jq -r --arg version "$VERSION" '.releases | has($version)' "$pypi")" = false
       - name: Publish to PyPI with Trusted Publishing
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: release-artifact/dist/
           attestations: true
