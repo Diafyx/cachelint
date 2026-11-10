@@ -124,6 +124,11 @@ The result contains safe paths, difference kinds, character offsets where availa
 
 ## Analysis scope
 
+For multi-file recordings, `analyze_corpus` groups requests by provider and
+exact model, then ranks recurring modeled prefix changes by observed count.
+The [corpus guide](docs/corpus.md) documents its deterministic pairing,
+privacy-safe results, limits, and ranking rules.
+
 The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` adds opt-in request recording through the two pinned SDKs. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.

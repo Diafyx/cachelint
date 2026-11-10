@@ -7,7 +7,13 @@ from cachelint._compare import (
     Finding,
     compare_requests,
 )
-from cachelint._corpus import CorpusGroup, CorpusLimits, CorpusResult, analyze_corpus
+from cachelint._corpus import (
+    CorpusGroup,
+    CorpusLimits,
+    CorpusPattern,
+    CorpusResult,
+    analyze_corpus,
+)
 from cachelint._estimate import PrefixEstimate
 from cachelint._ingest import (
     CanonicalRequest,
@@ -26,6 +32,7 @@ __all__ = [
     "ComparisonResult",
     "CorpusGroup",
     "CorpusLimits",
+    "CorpusPattern",
     "CorpusResult",
     "ContextDifference",
     "Divergence",
