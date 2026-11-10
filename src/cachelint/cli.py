@@ -1,19 +1,25 @@
 """Command-line entry point for cachelint."""
 
 import argparse
+import os
 import sys
+import tempfile
 from collections.abc import Sequence
+from pathlib import Path
 from typing import cast
 
 from cachelint import (
     ComparisonResult,
+    CorpusLimits,
     IncomparableRequestsError,
     InvalidRequestError,
     Provider,
     __version__,
+    analyze_corpus,
     compare_requests,
 )
 from cachelint._ingest import read_json, read_jsonl
+from cachelint.report import render_corpus_json, render_corpus_text
 
 
 def _provider_option(parser: argparse.ArgumentParser) -> None:
@@ -52,7 +58,61 @@ def build_parser() -> argparse.ArgumentParser:
     diff.add_argument("left", help="first raw request object")
     diff.add_argument("right", help="second raw request object")
     _provider_option(diff)
+    corpus = commands.add_parser(
+        "corpus", help="analyze bounded JSONL files or directories as one corpus"
+    )
+    corpus.add_argument("paths", nargs="+", help="JSONL files or directories")
+    _provider_option(corpus)
+    corpus.add_argument(
+        "--format", choices=("text", "json"), default="text", help="report format"
+    )
+    corpus.add_argument(
+        "--output",
+        metavar="PATH",
+        help="atomically replace a report file (default: stdout)",
+    )
+    defaults = CorpusLimits()
+    for name, default in (
+        ("max-files", defaults.max_files),
+        ("max-bytes", defaults.max_bytes),
+        ("max-requests", defaults.max_requests),
+        ("max-entries", defaults.max_entries),
+    ):
+        corpus.add_argument(f"--{name}", type=int, default=default, metavar="N")
     return parser
+
+
+def _write_corpus_report(
+    destination: str, inputs: Sequence[str], contents: str
+) -> None:
+    path = Path(destination)
+    if path.suffix.lower() == ".jsonl":
+        raise InvalidRequestError("report output must not have a JSONL extension")
+    if path.is_symlink():
+        raise InvalidRequestError("report output must not be a symlink")
+    if any(path.resolve() == Path(source).resolve() for source in inputs):
+        raise InvalidRequestError("report output must not replace an input")
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="\n",
+            prefix=".cachelint-report-",
+            suffix=".tmp",
+            dir=path.parent,
+            delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            stream.write(contents)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except OSError:
+        raise InvalidRequestError("cannot write report") from None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def _print_result(result: ComparisonResult) -> None:
@@ -109,6 +169,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     provider = cast(Provider | None, None if args.provider == "auto" else args.provider)
     try:
+        if args.command == "corpus":
+            corpus_result = analyze_corpus(
+                args.paths,
+                provider=provider,
+                estimate_method=args.estimate_method,
+                limits=CorpusLimits(
+                    max_files=args.max_files,
+                    max_bytes=args.max_bytes,
+                    max_requests=args.max_requests,
+                    max_entries=args.max_entries,
+                ),
+            )
+            rendered = (
+                render_corpus_json(corpus_result)
+                if args.format == "json"
+                else render_corpus_text(corpus_result)
+            )
+            if args.output is None:
+                print(rendered, end="")
+            else:
+                _write_corpus_report(args.output, args.paths, rendered)
+            return 0
         if args.command == "analyze":
             result = compare_requests(
                 read_jsonl(args.path, provider=provider),

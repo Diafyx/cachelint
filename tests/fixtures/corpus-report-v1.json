@@ -1,0 +1,130 @@
+{
+  "groups": [
+    {
+      "comparison": {
+        "common_prefix_segments": 1,
+        "context_differences": [],
+        "coverage_warnings": [],
+        "finding_codes": [
+          "prompt_text_changed"
+        ],
+        "first_divergence": {
+          "kind": "text_changed",
+          "offset": 15,
+          "path": "system"
+        },
+        "prefix_estimate": {
+          "method": "heuristic",
+          "minimum_cacheable_tokens": null,
+          "minimum_comparison": "unknown",
+          "minimum_source": null,
+          "rules_reviewed_on": null,
+          "tokens": 4,
+          "uncertainty": "wide; content and provider framing can change the count"
+        },
+        "prompt_status": "diverged"
+      },
+      "context_changed_count": 0,
+      "coverage_limited_count": 0,
+      "diverged_count": 1,
+      "file_count": 2,
+      "identical_count": 0,
+      "index": 1,
+      "paired_count": 1,
+      "provider": "anthropic",
+      "request_count": 2
+    },
+    {
+      "comparison": {
+        "common_prefix_segments": 0,
+        "context_differences": [],
+        "coverage_warnings": [],
+        "finding_codes": [
+          "prompt_text_changed"
+        ],
+        "first_divergence": {
+          "kind": "text_changed",
+          "offset": 16,
+          "path": "messages[0].content"
+        },
+        "prefix_estimate": {
+          "method": "heuristic",
+          "minimum_cacheable_tokens": null,
+          "minimum_comparison": "unknown",
+          "minimum_source": null,
+          "rules_reviewed_on": null,
+          "tokens": 4,
+          "uncertainty": "wide; content and provider framing can change the count"
+        },
+        "prompt_status": "diverged"
+      },
+      "context_changed_count": 0,
+      "coverage_limited_count": 0,
+      "diverged_count": 1,
+      "file_count": 2,
+      "identical_count": 0,
+      "index": 2,
+      "paired_count": 1,
+      "provider": "openai",
+      "request_count": 2
+    }
+  ],
+  "patterns": [
+    {
+      "category": "messages",
+      "common_prefix_segments": 0,
+      "context_changed_count": 0,
+      "count": 1,
+      "coverage_limited_count": 0,
+      "group_index": 2,
+      "kind": "text_changed",
+      "path": "messages[0].content",
+      "prefix_estimate": {
+        "method": "heuristic",
+        "minimum_cacheable_tokens": null,
+        "minimum_comparison": "unknown",
+        "minimum_source": null,
+        "rules_reviewed_on": null,
+        "tokens": 4,
+        "uncertainty": "wide; content and provider framing can change the count"
+      },
+      "provider": "openai",
+      "rank": 1,
+      "text_offset_max": 16,
+      "text_offset_min": 16
+    },
+    {
+      "category": "system",
+      "common_prefix_segments": 1,
+      "context_changed_count": 0,
+      "count": 1,
+      "coverage_limited_count": 0,
+      "group_index": 1,
+      "kind": "text_changed",
+      "path": "system",
+      "prefix_estimate": {
+        "method": "heuristic",
+        "minimum_cacheable_tokens": null,
+        "minimum_comparison": "unknown",
+        "minimum_source": null,
+        "rules_reviewed_on": null,
+        "tokens": 4,
+        "uncertainty": "wide; content and provider framing can change the count"
+      },
+      "provider": "anthropic",
+      "rank": 2,
+      "text_offset_max": 15,
+      "text_offset_min": 15
+    }
+  ],
+  "report_type": "cachelint.corpus",
+  "schema_version": 1,
+  "summary": {
+    "byte_count": 518,
+    "cohort_count": 2,
+    "file_count": 2,
+    "pattern_count": 2,
+    "provider_reported_cache_status": "unavailable",
+    "request_count": 4
+  }
+}

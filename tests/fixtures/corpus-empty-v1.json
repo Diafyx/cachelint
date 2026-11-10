@@ -1,0 +1,14 @@
+{
+  "groups": [],
+  "patterns": [],
+  "report_type": "cachelint.corpus",
+  "schema_version": 1,
+  "summary": {
+    "byte_count": 0,
+    "cohort_count": 0,
+    "file_count": 1,
+    "pattern_count": 0,
+    "provider_reported_cache_status": "unavailable",
+    "request_count": 0
+  }
+}

@@ -102,5 +102,53 @@ content hashes. Errors can still contain local paths as described above.
 
 Pairing and aggregation make one pass over the nonreference requests per
 cohort and never enumerate all request pairs. Corpus input remains subject to
-the configured file, byte, request, and discovery bounds. CLI report export is
-planned for later work in the `0.2.0a1` milestone.
+the configured file, byte, request, and discovery bounds.
+
+## Corpus command and report contract
+
+```powershell
+cachelint corpus recordings --format text
+cachelint corpus recordings --format json --output report.json
+cachelint corpus first.jsonl second.jsonl --max-requests 5000 --max-bytes 8388608
+```
+
+The command accepts one or more files or directories, with the same provider
+selection and estimate methods as `analyze` and `diff`. It writes text to
+standard output by default. Use `--format json` for machine-readable output.
+`--output PATH` writes either format to a named file: it creates a temporary
+file in the destination directory, flushes it, then atomically replaces the
+destination after the entire input has been validated and the report rendered.
+An existing report is overwritten. The command rejects a symlink destination,
+a destination equal to a direct input, and a `.jsonl` destination. The parent
+directory must already exist. Keep reports in a protected directory, even
+though the report omits request content. Its file permissions follow the host
+operating system and destination directory policy.
+
+The bundled [JSON Schema v1](../src/cachelint/corpus_report_v1.schema.json)
+defines every field, code, safe-path shape, and allowed value. The top-level
+`schema_version` is `1` and `report_type` is `cachelint.corpus`. The stable
+`summary` contains file, byte, request, cohort, and pattern counts plus
+`provider_reported_cache_status: "unavailable"`. `groups` contains ordered
+cohort counts and the existing comparison evidence. `patterns` contains the
+ranked observed divergence records. Optional evidence uses JSON `null`, not a
+missing field; empty corpora use empty `groups` and `patterns` arrays. JSON
+object keys are sorted, arrays retain deterministic cohort/rank order, and
+output ends with a newline. Incompatible report changes require a new schema
+version and filename.
+
+Python callers can build the same document without the CLI:
+
+```python
+from cachelint import analyze_corpus
+from cachelint.report import corpus_report
+
+document = corpus_report(analyze_corpus("recordings"))
+assert document["schema_version"] == 1
+```
+
+A successful report exits `0`, including empty corpora, identical comparisons,
+and one-request cohorts with insufficient evidence. Invalid input, invalid
+limits, or an unwritable output destination exits `2` and writes no partial
+report. Unexpected internal errors exit `1` with a generic message. Errors
+can still include local input paths as described above. Existing `analyze` and
+`diff` commands retain their current output and exit behavior.
