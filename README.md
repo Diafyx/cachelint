@@ -9,6 +9,11 @@ versions under the
 [private recording contract](docs/design/0003-private-sdk-recording-contract.md).
 See the [0.1.0a3 release notes](docs/releases/0.1.0a3.md).
 
+The next development series adds bounded multi-file corpus analysis through
+`analyze_corpus`. It groups mixed recordings by provider and exact model and
+returns content-safe summaries. See the [corpus guide](docs/corpus.md) for the
+Python API, input limits, ordering, and privacy contract.
+
 ## Requirements and current usage
 
 Python 3.11 or newer is required. The initial CI matrix covers Python 3.11 through 3.14.
