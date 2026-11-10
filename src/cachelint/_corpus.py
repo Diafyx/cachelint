@@ -5,11 +5,17 @@ from __future__ import annotations
 import os
 import stat
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Literal
 
-from cachelint._compare import ComparisonResult, compare_requests
-from cachelint._estimate import EstimateMethod
+from cachelint._compare import (
+    ComparisonResult,
+    DivergenceKind,
+    _pair_difference,
+    compare_requests,
+)
+from cachelint._estimate import EstimateMethod, PrefixEstimate, estimate_prefix
 from cachelint._ingest import (
     CanonicalRequest,
     InvalidRequestError,
@@ -51,6 +57,30 @@ class CorpusGroup:
     file_count: int
     request_count: int
     comparison: ComparisonResult
+    paired_count: int
+    identical_count: int
+    diverged_count: int
+    context_changed_count: int
+    coverage_limited_count: int
+
+
+@dataclass(frozen=True)
+class CorpusPattern:
+    """Observed divergence relative to a cohort's first request."""
+
+    rank: int
+    group_index: int
+    provider: Provider
+    category: str
+    path: str
+    kind: DivergenceKind
+    common_prefix_segments: int
+    count: int
+    text_offset_min: int | None
+    text_offset_max: int | None
+    context_changed_count: int
+    coverage_limited_count: int
+    prefix_estimate: PrefixEstimate
 
 
 @dataclass(frozen=True)
@@ -61,6 +91,83 @@ class CorpusResult:
     byte_count: int
     request_count: int
     groups: tuple[CorpusGroup, ...]
+    patterns: tuple[CorpusPattern, ...]
+    provider_reported_cache_status: Literal["unavailable"] = "unavailable"
+
+
+@dataclass
+class _PatternCount:
+    count: int = 0
+    text_offset_min: int | None = None
+    text_offset_max: int | None = None
+    context_changed_count: int = 0
+    coverage_limited_count: int = 0
+
+
+def _cohort_patterns(
+    requests: list[CanonicalRequest],
+    group_index: int,
+    estimate_method: EstimateMethod,
+) -> tuple[tuple[CorpusPattern, ...], tuple[int, int, int, int]]:
+    """Pair each later observation with one fixed reference in linear passes."""
+    reference = requests[0]
+    counts: dict[tuple[int, str, DivergenceKind], _PatternCount] = {}
+    identical = diverged = context_changed = coverage_limited = 0
+    for request in requests[1:]:
+        context_differs = request.context != reference.context
+        coverage_is_limited = bool(
+            request.coverage_warnings or reference.coverage_warnings
+        )
+        context_changed += context_differs
+        coverage_limited += coverage_is_limited
+        difference = _pair_difference(reference.segments, request.segments)
+        if difference is None:
+            identical += 1
+            continue
+        diverged += 1
+        common, divergence = difference
+        key = (common, divergence.path, divergence.kind)
+        aggregate = counts.setdefault(key, _PatternCount())
+        aggregate.count += 1
+        aggregate.context_changed_count += context_differs
+        aggregate.coverage_limited_count += coverage_is_limited
+        if divergence.offset is not None:
+            aggregate.text_offset_min = (
+                min(aggregate.text_offset_min, divergence.offset)
+                if aggregate.text_offset_min is not None
+                else divergence.offset
+            )
+            aggregate.text_offset_max = (
+                max(aggregate.text_offset_max, divergence.offset)
+                if aggregate.text_offset_max is not None
+                else divergence.offset
+            )
+    patterns = tuple(
+        CorpusPattern(
+            rank=0,
+            group_index=group_index,
+            provider=reference.provider,
+            category=path.split("[", 1)[0].split(".", 1)[0],
+            path=path,
+            kind=kind,
+            common_prefix_segments=common,
+            count=aggregate.count,
+            text_offset_min=aggregate.text_offset_min,
+            text_offset_max=aggregate.text_offset_max,
+            context_changed_count=aggregate.context_changed_count,
+            coverage_limited_count=aggregate.coverage_limited_count,
+            prefix_estimate=estimate_prefix(
+                reference,
+                common,
+                (path, aggregate.text_offset_min)
+                if aggregate.text_offset_min is not None
+                else None,
+                estimate_method,
+            ),
+        )
+        for (common, path, kind), aggregate in counts.items()
+    )
+    return patterns, (identical, diverged, context_changed, coverage_limited)
 
 
 def _reject_symlink_components(path: Path) -> None:
@@ -231,14 +338,41 @@ def analyze_corpus(
             raise InvalidRequestError(
                 "unreadable input file", SourceLocation(source_path)
             ) from None
-    summaries = tuple(
-        CorpusGroup(
-            index=index,
-            provider=key[0],
-            file_count=len(group_files[key]),
-            request_count=len(groups[key]),
-            comparison=compare_requests(groups[key], estimate_method=estimate_method),
+    summaries: list[CorpusGroup] = []
+    patterns: list[CorpusPattern] = []
+    for index, key in enumerate(sorted(groups), 1):
+        requests = groups[key]
+        cohort_patterns, counts = _cohort_patterns(requests, index, estimate_method)
+        identical, diverged, context_changed, coverage_limited = counts
+        patterns.extend(cohort_patterns)
+        summaries.append(
+            CorpusGroup(
+                index=index,
+                provider=key[0],
+                file_count=len(group_files[key]),
+                request_count=len(requests),
+                comparison=compare_requests(requests, estimate_method=estimate_method),
+                paired_count=len(requests) - 1,
+                identical_count=identical,
+                diverged_count=diverged,
+                context_changed_count=context_changed,
+                coverage_limited_count=coverage_limited,
+            )
         )
-        for index, key in enumerate(sorted(groups), 1)
+    ranked = tuple(
+        replace(pattern, rank=rank)
+        for rank, pattern in enumerate(
+            sorted(
+                patterns,
+                key=lambda item: (
+                    -item.count,
+                    item.common_prefix_segments,
+                    item.group_index,
+                    item.path,
+                    item.kind,
+                ),
+            ),
+            1,
+        )
     )
-    return CorpusResult(len(files), byte_count, request_count, summaries)
+    return CorpusResult(len(files), byte_count, request_count, tuple(summaries), ranked)
