@@ -120,7 +120,7 @@
   "report_type": "cachelint.corpus",
   "schema_version": 1,
   "summary": {
-    "byte_count": 518,
+    "byte_count": 514,
     "cohort_count": 2,
     "file_count": 2,
     "pattern_count": 2,
