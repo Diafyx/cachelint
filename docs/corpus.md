@@ -14,7 +14,10 @@ from pathlib import Path
 from cachelint import CorpusLimits, analyze_corpus
 
 result = analyze_corpus(
-    [Path("/private/recordings/run-one.jsonl"), Path("/private/recordings/run-two.jsonl")],
+    [
+        Path("/private/recordings/run-one.jsonl"),
+        Path("/private/recordings/run-two.jsonl"),
+    ],
     limits=CorpusLimits(max_files=64, max_bytes=8 * 1024 * 1024),
 )
 for group in result.groups:

@@ -178,10 +178,10 @@ def test_bad_line_reports_location_without_content(tmp_path: Path) -> None:
 
 def test_invalid_utf8_and_invalid_config_have_safe_errors(tmp_path: Path) -> None:
     path = tmp_path / "bad.jsonl"
-    path.write_bytes(b"\xffprivate")
+    path.write_bytes(b"\xff__CACHELINT_PRIVATE_PAYLOAD_SENTINEL__")
     with pytest.raises(InvalidRequestError, match="invalid UTF-8") as error:
         analyze_corpus([path])
-    assert "private" not in str(error.value)
+    assert "__CACHELINT_PRIVATE_PAYLOAD_SENTINEL__" not in str(error.value)
     with pytest.raises(InvalidRequestError, match="positive integers"):
         CorpusLimits(max_files=True)
     with pytest.raises(InvalidRequestError, match="unsupported provider"):
