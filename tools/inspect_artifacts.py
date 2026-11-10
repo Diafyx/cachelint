@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import json
 import sys
 import tarfile
 import zipfile
@@ -79,16 +80,22 @@ def inspect(dist_dir: Path) -> None:
         required_wheel = {
             "cachelint/__init__.py",
             "cachelint/_compare.py",
+            "cachelint/_corpus.py",
             "cachelint/_estimate.py",
             "cachelint/_ingest.py",
             "cachelint/recording.py",
             "cachelint/_version.py",
             "cachelint/cli.py",
+            "cachelint/report.py",
             "cachelint/py.typed",
             "cachelint/cache_rules.json",
+            "cachelint/corpus_report_v1.schema.json",
         }
         if not required_wheel.issubset(names):
             raise ValueError("Wheel is missing package files")
+        schema = json.loads(wheel.read("cachelint/corpus_report_v1.schema.json"))
+        if schema.get("properties", {}).get("schema_version") != {"const": 1}:
+            raise ValueError("Wheel corpus report schema is invalid")
         if not any(name.endswith("/LICENSE") for name in names):
             raise ValueError("Wheel is missing LICENSE")
         entry_points = [
@@ -109,20 +116,31 @@ def inspect(dist_dir: Path) -> None:
             "MANIFEST.in",
             "pyproject.toml",
             "docs/recording.md",
+            "docs/corpus.md",
             "docs/releases/0.1.0a3.md",
             "docs/design/0003-private-sdk-recording-contract.md",
             "src/cachelint/__init__.py",
             "src/cachelint/_compare.py",
+            "src/cachelint/_corpus.py",
             "src/cachelint/_estimate.py",
             "src/cachelint/_ingest.py",
             "src/cachelint/recording.py",
             "src/cachelint/_version.py",
             "src/cachelint/cli.py",
+            "src/cachelint/report.py",
             "src/cachelint/py.typed",
             "src/cachelint/cache_rules.json",
+            "src/cachelint/corpus_report_v1.schema.json",
         }
         if not required_sdist.issubset(names):
             raise ValueError("Sdist is missing source or metadata files")
+        schema_file = sdist.extractfile(
+            f"cachelint-{version}/src/cachelint/corpus_report_v1.schema.json"
+        )
+        if schema_file is None or json.load(schema_file).get("properties", {}).get(
+            "schema_version"
+        ) != {"const": 1}:
+            raise ValueError("Sdist corpus report schema is invalid")
         if any(".tmp/" in name for name in names):
             raise ValueError("Sdist includes local .tmp files")
 

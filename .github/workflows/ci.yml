@@ -95,10 +95,12 @@ jobs:
         run: |
           python -m twine check dist/*
           python tools/inspect_artifacts.py dist
-      - name: Install wheel outside checkout
+      - name: Install and smoke test wheel and sdist outside checkout
         run: |
           python -m venv "$RUNNER_TEMP/cachelint-smoke"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -m pip install --no-index --no-deps dist/*.whl
+          python -m venv "$RUNNER_TEMP/cachelint-sdist-smoke"
+          "$RUNNER_TEMP/cachelint-sdist-smoke/bin/python" -m pip install --no-deps dist/*.tar.gz
           python -m venv "$RUNNER_TEMP/cachelint-sdk-smoke"
           WHEEL=$(echo dist/*.whl)
           "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pip install "${WHEEL}[sdk-anthropic,sdk-openai]" pytest
@@ -113,4 +115,7 @@ jobs:
           printf '%s\n' '{"model":"demo","system":"Beta","messages":[]}' > second.json
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" analyze requests.jsonl
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" diff first.json second.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" corpus requests.jsonl --format json --output corpus-wheel.json
+          "$RUNNER_TEMP/cachelint-sdist-smoke/bin/cachelint" corpus requests.jsonl --format json --output corpus-sdist.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from pathlib import Path; from importlib.resources import files; a=json.loads(Path('corpus-wheel.json').read_text()); b=json.loads(Path('corpus-sdist.json').read_text()); assert a==b and a['schema_version']==1 and a['patterns'][0]['path']=='system'; assert json.loads(files('cachelint').joinpath('corpus_report_v1.schema.json').read_text())['properties']['schema_version']=={'const':1}"
           "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pytest -q test_recording_sdk.py
