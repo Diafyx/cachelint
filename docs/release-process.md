@@ -3,7 +3,7 @@
 This is the maintainer's reviewed release sequence. The
 [trusted publication design](design/0002-trusted-pypi-publication-controls.md)
 defines the controls implemented by `.github/workflows/release.yml`. The
-[0.1.0a2 release notes](releases/0.1.0a2.md) are the reviewed GitHub prerelease
+[0.1.0a3 release notes](releases/0.1.0a3.md) are the reviewed GitHub prerelease
 body for the current candidate. Merging the release-preparation PR does not
 publish anything.
 
@@ -69,7 +69,7 @@ Keep release issue #2 open and follow the recovery rule in ADR 0002.
 
 ## Second publication: 0.1.0a2
 
-The project already exists on PyPI. The current release gate checks its exact
+The project already exists on PyPI. The second release gate checked its exact
 name, source repository, reviewed owner, and two `0.1.0a1` files, then requires
 `0.1.0a2` to be absent. It checks the same project again after deployment
 approval. On 2026-10-25 the public PyPI JSON API showed `0.1.0a1` as the only
@@ -110,4 +110,47 @@ mapping and project ownership in the UI.
 
 If the run fails, confirm it is terminal and inspect PyPI before retrying. If
 either `0.1.0a2` file was accepted, do not reuse that version; follow the
+recovery rule above.
+
+## Third publication: 0.1.0a3
+
+The reviewed `0.1.0a2` wheel and sdist are the prior release. The new gate
+checks that project's name, Source link, owner, and exact two prior filenames;
+it refuses an existing `0.1.0a3` version. The release workflow checks the same
+facts again after protected-environment approval. The existing PyPI Trusted
+Publisher mapping and repository tag rules still require maintainer review in
+their respective UIs.
+
+1. Merge [preparation issue #31](https://github.com/Diafyx/cachelint/issues/31)
+   through its own PR. Confirm the resulting exact `main` commit passes every
+   required CI job. The prior recorder merge's push CI failed because a test
+   patched `os.fstat` globally; the preparation PR scopes that test double to
+   the recorder log. Review the source version, wheel and sdist, pinned SDK
+   extras, privacy behavior, notes, and relevant security findings. Keep
+   [release issue #15](https://github.com/Diafyx/cachelint/issues/15) open.
+2. Recheck the protected `pypi` environment, `main`-only deployment policy,
+   required reviewer `SEPURI-SAI-KRISHNA`, disabled administrator bypass, and
+   Trusted Publisher mapping for `Diafyx/cachelint`, `release.yml`, and `pypi`.
+   Review active `v*` tag rulesets. Set `RELEASE_APPROVED_VERSION` to
+   `0.1.0a3` only after reviewing the exact candidate.
+3. At the reviewed `main` commit, create and push the annotated `v0.1.0a3`
+   tag as separate maintainer actions. Read back its remote target. Never move
+   an existing release tag.
+4. Dispatch **Publish PyPI prerelease** from `main` with version `0.1.0a3`, the
+   full candidate SHA, and confirmation `publish 0.1.0a3`. The workflow refuses
+   a different branch, version, commit, tag, CI, milestone, issue state,
+   environment, project identity, or an already present target version.
+5. Before approving the `pypi` deployment in the GitHub UI, compare its run
+   ID, SHA, tag, `cachelint-0.1.0a3` artifact, two filenames, and SHA-256
+   manifest with your review. The build job smoke-installs the core and both
+   SDK extras from the candidate wheel, then exercises synthetic SDK requests
+   with mock transports. The publish job rechecks remote state and PyPI before
+   uploading the retained files with Trusted Publishing.
+6. Verify the PyPI metadata, provenance, downloaded file hashes, fresh core
+   and SDK-extra installs, documented CLI and recorder examples, GitHub
+   prerelease, and its two attached files. Record evidence in issue #15, remove
+   `RELEASE_APPROVED_VERSION`, then close issue #15 and milestone `0.1.0a3`.
+
+If the run fails, confirm it is terminal and inspect PyPI before retrying. If
+either `0.1.0a3` file was accepted, do not reuse that version; follow the
 recovery rule above.

@@ -377,19 +377,38 @@ def test_symlink_destination_is_rejected(
 def test_nonregular_and_permissive_open_are_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(os, "fstat", lambda _fd: SimpleNamespace(st_mode=stat.S_IFDIR))
-    with pytest.raises(RecorderSetupError, match="unsafe"):
-        new_recorder(tmp_path).__enter__()
-    assert not (tmp_path / "requests.jsonl.lock").exists()
-    monkeypatch.setattr(recording, "_WINDOWS", False)
-    monkeypatch.setattr(
-        os,
-        "fstat",
-        lambda _fd: SimpleNamespace(st_mode=stat.S_IFREG | 0o644),
-    )
-    with pytest.raises(RecorderSetupError, match="unsafe"):
-        new_recorder(tmp_path).__enter__()
-    assert not (tmp_path / "requests.jsonl.lock").exists()
+    destination = tmp_path / "requests.jsonl"
+    real_open = os.open
+    real_fstat = os.fstat
+
+    def assert_rejected(mode: int) -> None:
+        log_fd: int | None = None
+
+        def tracked_open(path: object, flags: int, permissions: int = 0o777) -> int:
+            nonlocal log_fd
+            fd = real_open(path, flags, permissions)  # type: ignore[arg-type]
+            if path == destination:
+                log_fd = fd
+            return fd
+
+        def log_fstat(fd: int) -> os.stat_result:
+            actual = real_fstat(fd)
+            if fd == log_fd:
+                return os.stat_result((mode, *actual[1:]))
+            return actual
+
+        with monkeypatch.context() as patch:
+            patch.setattr(os, "open", tracked_open)
+            patch.setattr(os, "fstat", log_fstat)
+            with pytest.raises(RecorderSetupError, match="unsafe"):
+                new_recorder(tmp_path).__enter__()
+        assert log_fd is not None
+        assert not (tmp_path / "requests.jsonl.lock").exists()
+
+    assert_rejected(stat.S_IFDIR)
+    with monkeypatch.context() as patch:
+        patch.setattr(recording, "_WINDOWS", False)
+        assert_rejected(stat.S_IFREG | 0o644)
 
 
 def test_log_open_failure_releases_sidecar_lock(

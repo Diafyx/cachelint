@@ -34,7 +34,7 @@ def release_responses() -> dict[str, dict[str, Any]]:
             "workflow_runs": [{"id": 123, "created_at": "2026-10-24T12:00:00Z"}],
         },
         "git/ref/heads/main": {"object": {"sha": SHA}},
-        "git/ref/tags/v0.1.0a2": {"object": {"type": "tag", "sha": "b" * 40}},
+        "git/ref/tags/v0.1.0a3": {"object": {"type": "tag", "sha": "b" * 40}},
         f"git/tags/{'b' * 40}": {"object": {"type": "commit", "sha": SHA}},
         f"actions/workflows/ci.yml/runs?event=push&head_sha={SHA}&per_page=100": {
             "workflow_runs": [
@@ -50,15 +50,19 @@ def release_responses() -> dict[str, dict[str, Any]]:
             ]
         },
         "actions/runs/456/jobs?filter=latest&per_page=100": {"jobs": jobs},
-        "milestones/2": {"title": "0.1.0a2", "state": "open"},
-        "issues/12": {
-            "title": "release: 0.1.0a2",
+        "milestones/3": {"title": "0.1.0a3", "state": "open"},
+        "issues/15": {
+            "title": "release: 0.1.0a3",
             "state": "open",
-            "milestone": {"number": 2},
+            "milestone": {"number": 3},
         },
-        "issues/23": {"state": "closed", "milestone": {"number": 2}},
-        "issues?milestone=2&state=open&per_page=100": {
-            "items": [{"number": 12}],
+        "issues/31": {
+            "title": "maintenance: prepare 0.1.0a3 release candidate",
+            "state": "closed",
+            "milestone": {"number": 3},
+        },
+        "issues?milestone=3&state=open&per_page=100": {
+            "items": [{"number": 15}],
             "total_count": 1,
         },
         "environments/pypi": {
@@ -95,8 +99,8 @@ def release_env() -> dict[str, str]:
         "GITHUB_SHA": SHA,
         "GITHUB_RUN_ID": "123",
         "CANDIDATE_SHA": SHA,
-        "VERSION": "0.1.0a2",
-        "CONFIRMATION": "publish 0.1.0a2",
+        "VERSION": "0.1.0a3",
+        "CONFIRMATION": "publish 0.1.0a3",
     }
 
 
@@ -113,12 +117,12 @@ def test_recheck_requires_exact_approval_and_unchanged_candidate(
     monkeypatch.setattr(release_gate, "check_pypi_project", lambda: None)
     responses = release_responses()
     env = release_env()
-    env["RELEASE_APPROVED_VERSION"] = "0.1.0a2"
+    env["RELEASE_APPROVED_VERSION"] = "0.1.0a3"
     release_gate.recheck(responses.__getitem__, env)
     env["RELEASE_APPROVED_VERSION"] = "0.1.0a1"
     with pytest.raises(release_gate.ReleaseGateError, match="Approval differs"):
         release_gate.recheck(responses.__getitem__, env)
-    env["RELEASE_APPROVED_VERSION"] = "0.1.0a2"
+    env["RELEASE_APPROVED_VERSION"] = "0.1.0a3"
     responses["git/ref/heads/main"]["object"]["sha"] = "c" * 40
     with pytest.raises(release_gate.ReleaseGateError, match="Main has moved"):
         release_gate.recheck(responses.__getitem__, env)
@@ -129,11 +133,12 @@ def test_recheck_requires_exact_approval_and_unchanged_candidate(
     [
         ("actions/runs/123", {"run_attempt": 2}),
         ("git/ref/heads/main", {"object": {"sha": "c" * 40}}),
-        ("git/ref/tags/v0.1.0a2", {"object": {"type": "commit", "sha": "c" * 40}}),
-        ("milestones/2", {"state": "closed"}),
-        ("issues/12", {"state": "closed"}),
-        ("issues/23", {"state": "open"}),
-        ("issues?milestone=2&state=open&per_page=100", {"total_count": 2}),
+        ("git/ref/tags/v0.1.0a3", {"object": {"type": "commit", "sha": "c" * 40}}),
+        ("milestones/3", {"state": "closed"}),
+        ("issues/15", {"state": "closed"}),
+        ("issues/31", {"state": "open"}),
+        ("issues/31", {"title": "maintenance: different release"}),
+        ("issues?milestone=3&state=open&per_page=100", {"total_count": 2}),
         ("environments/pypi", {"protection_rules": []}),
         (
             "environments/pypi/deployment-branch-policies?per_page=100",
@@ -156,7 +161,7 @@ def test_preflight_rejects_remote_changes(
 @pytest.mark.parametrize(
     ("key", "value"),
     [
-        ("GITHUB_REF", "refs/tags/v0.1.0a2"),
+        ("GITHUB_REF", "refs/tags/v0.1.0a3"),
         ("CANDIDATE_SHA", "c" * 40),
         ("VERSION", "0.1.0a1"),
         ("CONFIRMATION", "publish 0.1.0a1"),
@@ -230,16 +235,16 @@ def pypi_project() -> dict[str, Any]:
     return {
         "info": {
             "name": "cachelint",
-            "version": "0.1.0a1",
+            "version": "0.1.0a2",
             "project_urls": {"Source": "https://github.com/Diafyx/cachelint"},
         },
         "ownership": {
             "roles": [{"role": "Owner", "user": "saikrishnapypi"}],
         },
         "releases": {
-            "0.1.0a1": [
-                {"filename": "cachelint-0.1.0a1-py3-none-any.whl"},
-                {"filename": "cachelint-0.1.0a1.tar.gz"},
+            "0.1.0a2": [
+                {"filename": "cachelint-0.1.0a2-py3-none-any.whl"},
+                {"filename": "cachelint-0.1.0a2.tar.gz"},
             ]
         },
     }
@@ -285,7 +290,7 @@ def test_pypi_project_changes_block_release(
     elif change == "owner":
         project["ownership"]["roles"][0]["user"] = "other"
     elif change == "old_files":
-        project["releases"]["0.1.0a1"] = []
+        project["releases"]["0.1.0a2"] = []
     elif change == "project_missing":
 
         def missing(request: urllib.request.Request, timeout: int) -> PyPIResponse:
@@ -298,7 +303,7 @@ def test_pypi_project_changes_block_release(
             release_gate.check_pypi_project()
         return
     else:
-        project["releases"]["0.1.0a2"] = []
+        project["releases"]["0.1.0a3"] = []
     mock_pypi_project(monkeypatch, project)
     with pytest.raises(release_gate.ReleaseGateError, match=message):
         release_gate.check_pypi_project()
@@ -345,7 +350,7 @@ def test_pypi_file_bytes_must_match_retained_artifacts(
     release_artifacts.package(source, target)
     hashes = release_artifacts.verify(target)
     metadata = {
-        "info": {"name": "cachelint", "version": "0.1.0a2"},
+        "info": {"name": "cachelint", "version": "0.1.0a3"},
         "urls": [
             {
                 "filename": name,
