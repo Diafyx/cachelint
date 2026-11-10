@@ -101,7 +101,8 @@ jobs:
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -m pip install --no-index --no-deps dist/*.whl
           python -m venv "$RUNNER_TEMP/cachelint-sdk-smoke"
           WHEEL=$(echo dist/*.whl)
-          "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pip install "${WHEEL}[sdk-anthropic,sdk-openai]"
+          "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pip install "${WHEEL}[sdk-anthropic,sdk-openai]" pytest
+          cp tests/test_recording_sdk.py "$RUNNER_TEMP/test_recording_sdk.py"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "from importlib.metadata import version; import cachelint; assert cachelint.__version__ == version('cachelint')"
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --help
@@ -112,3 +113,4 @@ jobs:
           printf '%s\n' '{"model":"demo","system":"Beta","messages":[]}' > second.json
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" analyze requests.jsonl
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" diff first.json second.json
+          "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pytest -q test_recording_sdk.py

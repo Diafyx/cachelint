@@ -14,12 +14,12 @@ from pathlib import Path
 from typing import Any, cast
 
 REPO = "Diafyx/cachelint"
-VERSION = "0.1.0a2"
-PREVIOUS_VERSION = "0.1.0a1"
+VERSION = "0.1.0a3"
+PREVIOUS_VERSION = "0.1.0a2"
 PYPI_OWNER = "saikrishnapypi"
-RELEASE_ISSUE = 12
-PREPARATION_ISSUE = 23
-MILESTONE = 2
+RELEASE_ISSUE = 15
+PREPARATION_ISSUE = 31
+MILESTONE = 3
 REQUIRED_JOBS = {
     "Quality and coverage",
     "Build and smoke test",
@@ -228,7 +228,8 @@ def check_issues(get: Any) -> None:
     )
     preparation = get(f"issues/{PREPARATION_ISSUE}")
     require(
-        preparation.get("state") == "closed"
+        preparation.get("title") == f"maintenance: prepare {VERSION} release candidate"
+        and preparation.get("state") == "closed"
         and preparation.get("milestone", {}).get("number") == MILESTONE,
         "Release-preparation issue is not closed",
     )
