@@ -7,12 +7,13 @@ through the Python API and CLI, with advisory stable-prefix length estimates.
 Opt-in SDK recording is available through the Python API for two pinned SDK
 versions under the
 [private recording contract](docs/design/0003-private-sdk-recording-contract.md).
-See the [0.1.0a3 release notes](docs/releases/0.1.0a3.md).
+See the [0.2.0a1 release notes](docs/releases/0.2.0a1.md).
 
-The next development series adds bounded multi-file corpus analysis through
-`analyze_corpus`. It groups mixed recordings by provider and exact model and
-returns content-safe summaries. See the [corpus guide](docs/corpus.md) for the
-Python API, input limits, ordering, and privacy contract.
+The 0.2 alpha series adds bounded multi-file corpus analysis through
+`analyze_corpus` and `cachelint corpus`. It groups mixed recordings by provider
+and exact model, ranks recurring prefix differences, and exports content-safe
+reports. See the [corpus guide](docs/corpus.md) for limits, ordering, and the
+report contract.
 
 ## Requirements and current usage
 
@@ -130,7 +131,7 @@ The [corpus guide](docs/corpus.md) documents its deterministic pairing,
 privacy-safe results, limits, ranking rules, `cachelint corpus` command, and
 versioned JSON report contract.
 
-The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` adds opt-in request recording through the two pinned SDKs. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` added opt-in request recording through the two pinned SDKs. `0.2.0a1` adds bounded corpus analysis and versioned reports. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.
 

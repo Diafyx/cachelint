@@ -14,12 +14,12 @@ from pathlib import Path
 from typing import Any, cast
 
 REPO = "Diafyx/cachelint"
-VERSION = "0.1.0a3"
-PREVIOUS_VERSION = "0.1.0a2"
+VERSION = "0.2.0a1"
+PREVIOUS_VERSION = "0.1.0a3"
 PYPI_OWNER = "saikrishnapypi"
-RELEASE_ISSUE = 15
-PREPARATION_ISSUE = 31
-MILESTONE = 3
+RELEASE_ISSUE = 37
+PREPARATION_ISSUE = 36
+MILESTONE = 4
 REQUIRED_JOBS = {
     "Quality and coverage",
     "Build and smoke test",
