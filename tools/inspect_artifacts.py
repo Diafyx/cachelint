@@ -117,6 +117,7 @@ def inspect(dist_dir: Path) -> None:
             "pyproject.toml",
             "docs/recording.md",
             "docs/corpus.md",
+            "docs/releases/0.2.0a1.md",
             "docs/releases/0.1.0a3.md",
             "docs/design/0003-private-sdk-recording-contract.md",
             "src/cachelint/__init__.py",
