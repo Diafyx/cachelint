@@ -99,6 +99,10 @@ cache hits. Opaque content and unmodeled context can limit conclusions; inspect
 the coverage and context counts before prioritizing a pattern. The result
 contains no model names, request values, excerpts, source paths, or persistent
 content hashes. Errors can still contain local paths as described above.
+For recordings with an opt-in usage sidecar, use the separate
+[`analyze_usage` and `cachelint usage` workflow](usage.md) to validate and
+summarize provider observations. The corpus report version 1 remains a
+request-only report.
 
 Pairing and aggregation make one pass over the nonreference requests per
 cohort and never enumerate all request pairs. Corpus input remains subject to

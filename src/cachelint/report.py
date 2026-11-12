@@ -7,8 +7,10 @@ import json
 from cachelint._compare import ComparisonResult, Divergence
 from cachelint._corpus import CorpusResult
 from cachelint._estimate import PrefixEstimate
+from cachelint._observed import UsageResult
 
 CORPUS_REPORT_SCHEMA_VERSION = 1
+USAGE_REPORT_SCHEMA_VERSION = 1
 
 
 def _estimate_document(estimate: PrefixEstimate | None) -> dict[str, object] | None:
@@ -142,4 +144,102 @@ def render_corpus_text(result: CorpusResult) -> str:
             f"{pattern.common_prefix_segments}; ~{pattern.prefix_estimate.tokens} "
             f"modeled tokens ({pattern.prefix_estimate.method}, advisory){offset}"
         )
+    return "\n".join(lines) + "\n"
+
+
+def usage_report(result: UsageResult) -> dict[str, object]:
+    """Project only reviewed observation fields into usage report version 1."""
+    return {
+        "schema_version": USAGE_REPORT_SCHEMA_VERSION,
+        "report_type": "cachelint.usage",
+        "summary": {
+            "provider": result.provider,
+            "trace_count": result.trace_count,
+            "byte_count": result.byte_count,
+            "request_count": result.request_count,
+            "sidecar_row_count": result.sidecar_row_count,
+            "unassigned_attempt_count": result.unassigned_attempt_count,
+            "cohort_count": len(result.groups),
+        },
+        "groups": [
+            {
+                "index": group.index,
+                "provider": group.provider,
+                "request_count": group.request_count,
+                "status_counts": dict(group.status_counts),
+                "cache_read_positive_count": group.cache_read_positive_count,
+                "cache_read_zero_count": group.cache_read_zero_count,
+                "cache_read_unknown_count": group.cache_read_unknown_count,
+                "known_cache_read_tokens": group.known_cache_read_tokens,
+                "cache_write_positive_count": group.cache_write_positive_count,
+                "cache_write_zero_count": group.cache_write_zero_count,
+                "cache_write_unknown_count": group.cache_write_unknown_count,
+                "known_cache_write_tokens": group.known_cache_write_tokens,
+            }
+            for group in result.groups
+        ],
+        "observations": [
+            {
+                "trace_index": item.trace_index,
+                "request_index": item.request_index,
+                "group_index": item.group_index,
+                "attempt_id": item.attempt_id,
+                "usage_status": item.usage_status,
+                "cache_read_tokens": item.cache_read_tokens,
+                "cache_write_tokens": item.cache_write_tokens,
+            }
+            for item in result.observations
+        ],
+    }
+
+
+def render_usage_json(result: UsageResult) -> str:
+    """Render deterministic, content-free JSON with one final newline."""
+    return json.dumps(usage_report(result), indent=2, sort_keys=True) + "\n"
+
+
+def render_usage_text(result: UsageResult) -> str:
+    """Render observed counts without converting unknowns into misses."""
+    lines = [
+        "Usage observation report",
+        f"Provider: {result.provider}",
+        f"Traces: {result.trace_count}",
+        f"Requests: {result.request_count}",
+        f"Sidecar rows: {result.sidecar_row_count}",
+        f"Unassigned attempts: {result.unassigned_attempt_count}",
+        f"Cohorts: {len(result.groups)}",
+    ]
+    for group in result.groups:
+        statuses = dict(group.status_counts)
+        lines.extend(
+            [
+                f"Cohort {group.index}: {group.provider}",
+                f"  Requests: {group.request_count}",
+                (
+                    f"  Usage reported: {statuses['reported']}; "
+                    f"missing sidecar: {statuses['missing_sidecar']}"
+                ),
+                (
+                    f"  Cache read: positive {group.cache_read_positive_count}; "
+                    f"zero {group.cache_read_zero_count}; "
+                    f"unknown {group.cache_read_unknown_count}"
+                ),
+                (
+                    f"  Known cache-read tokens: {group.known_cache_read_tokens} "
+                    "(partial when unknown > 0)"
+                ),
+                (
+                    f"  Cache write: positive {group.cache_write_positive_count}; "
+                    f"zero {group.cache_write_zero_count}; "
+                    f"unknown {group.cache_write_unknown_count}"
+                ),
+                (
+                    f"  Known cache-write tokens: {group.known_cache_write_tokens} "
+                    "(partial when unknown > 0)"
+                ),
+            ]
+        )
+    if not result.groups:
+        lines.append("No request cohorts found.")
+    lines.append("Provider usage is an observation, not proof of a private cache key.")
     return "\n".join(lines) + "\n"

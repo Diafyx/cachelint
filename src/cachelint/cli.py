@@ -14,12 +14,20 @@ from cachelint import (
     IncomparableRequestsError,
     InvalidRequestError,
     Provider,
+    UsageLimits,
+    UsageTrace,
     __version__,
     analyze_corpus,
+    analyze_usage,
     compare_requests,
 )
 from cachelint._ingest import read_json, read_jsonl
-from cachelint.report import render_corpus_json, render_corpus_text
+from cachelint.report import (
+    render_corpus_json,
+    render_corpus_text,
+    render_usage_json,
+    render_usage_text,
+)
 
 
 def _provider_option(parser: argparse.ArgumentParser) -> None:
@@ -79,12 +87,32 @@ def build_parser() -> argparse.ArgumentParser:
         ("max-entries", defaults.max_entries),
     ):
         corpus.add_argument(f"--{name}", type=int, default=default, metavar="N")
+    usage = commands.add_parser(
+        "usage", help="join private request logs with opt-in usage sidecars"
+    )
+    usage.add_argument(
+        "--trace",
+        nargs=2,
+        action="append",
+        required=True,
+        metavar=("REQUESTS", "SIDECAR"),
+        help="request JSONL and its same-session usage sidecar; repeat for more traces",
+    )
+    usage.add_argument("--provider", choices=("anthropic", "openai"), required=True)
+    usage.add_argument("--format", choices=("text", "json"), default="text")
+    usage.add_argument("--output", metavar="PATH")
+    usage_defaults = UsageLimits()
+    for name, default in (
+        ("max-traces", usage_defaults.max_traces),
+        ("max-bytes", usage_defaults.max_bytes),
+        ("max-requests", usage_defaults.max_requests),
+        ("max-rows", usage_defaults.max_rows),
+    ):
+        usage.add_argument(f"--{name}", type=int, default=default, metavar="N")
     return parser
 
 
-def _write_corpus_report(
-    destination: str, inputs: Sequence[str], contents: str
-) -> None:
+def _write_report(destination: str, inputs: Sequence[str], contents: str) -> None:
     path = Path(destination)
     if path.suffix.lower() == ".jsonl":
         raise InvalidRequestError("report output must not have a JSONL extension")
@@ -169,6 +197,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     provider = cast(Provider | None, None if args.provider == "auto" else args.provider)
     try:
+        if args.command == "usage":
+            traces = [UsageTrace(requests, sidecar) for requests, sidecar in args.trace]
+            usage_result = analyze_usage(
+                traces,
+                provider=cast(Provider, args.provider),
+                limits=UsageLimits(
+                    max_traces=args.max_traces,
+                    max_bytes=args.max_bytes,
+                    max_requests=args.max_requests,
+                    max_rows=args.max_rows,
+                ),
+            )
+            rendered = (
+                render_usage_json(usage_result)
+                if args.format == "json"
+                else render_usage_text(usage_result)
+            )
+            if args.output is None:
+                print(rendered, end="")
+            else:
+                _write_report(
+                    args.output,
+                    [path for trace in args.trace for path in trace],
+                    rendered,
+                )
+            return 0
         if args.command == "corpus":
             corpus_result = analyze_corpus(
                 args.paths,
@@ -189,7 +243,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.output is None:
                 print(rendered, end="")
             else:
-                _write_corpus_report(args.output, args.paths, rendered)
+                _write_report(args.output, args.paths, rendered)
             return 0
         if args.command == "analyze":
             result = compare_requests(
