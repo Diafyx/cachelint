@@ -142,6 +142,7 @@ def inspect(dist_dir: Path) -> None:
             "docs/design/0004-cache-usage-sidecar-contract.md",
             "docs/design/0005-observed-usage-join-contract.md",
             "docs/design/0006-observed-corpus-findings.md",
+            "docs/releases/0.2.0a2.md",
             "docs/releases/0.2.0a1.md",
             "docs/releases/0.1.0a3.md",
             "docs/design/0003-private-sdk-recording-contract.md",

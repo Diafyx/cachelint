@@ -7,7 +7,7 @@ through the Python API and CLI, with advisory stable-prefix length estimates.
 Opt-in SDK recording is available through the Python API for two pinned SDK
 versions under the
 [private recording contract](docs/design/0003-private-sdk-recording-contract.md).
-See the [0.2.0a1 release notes](docs/releases/0.2.0a1.md).
+See the [0.2.0a2 release notes](docs/releases/0.2.0a2.md).
 
 The 0.2 alpha series adds bounded multi-file corpus analysis through
 `analyze_corpus` and `cachelint corpus`. It groups mixed recordings by provider
@@ -16,10 +16,11 @@ reports. See the [corpus guide](docs/corpus.md) for limits, ordering, and the
 report contract. Opt-in usage sidecars can be joined to a corpus for ranked,
 evidence-labeled findings in report schema v2. Request-only output remains v1.
 
-The current development series adds opt-in provider cache-usage counters to a
-separate private SDK-recording sidecar. The raw request JSONL format stays
-analyzer-compatible. See the [recording guide](docs/recording.md) for the
-supported SDK versions, file permissions, and limitations.
+The `0.2.0a2` series adds opt-in provider cache-usage counters in a
+separate private SDK-recording sidecar and joins them with modeled corpus
+findings. The raw request JSONL format stays analyzer-compatible. See the
+[recording guide](docs/recording.md) for the supported SDK versions, file
+permissions, and limitations.
 
 ## Requirements and current usage
 
@@ -143,7 +144,7 @@ provider-observed cache read counts with missing evidence kept explicit.
 The [usage guide](docs/usage.md) documents the exact join, supported fields,
 limits, and privacy contract.
 
-The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` added opt-in request recording through the two pinned SDKs. `0.2.0a1` adds bounded corpus analysis and versioned reports. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` added opt-in request recording through the two pinned SDKs. `0.2.0a1` added bounded corpus analysis and versioned reports. `0.2.0a2` adds opt-in observed usage summaries and evidence-labeled findings. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.
 
