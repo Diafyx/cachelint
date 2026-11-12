@@ -1,0 +1,604 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/corpus_report_v2.schema.json",
+  "title": "cachelint corpus report v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_type",
+    "summary",
+    "groups",
+    "patterns",
+    "observed_findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "report_type": {
+      "const": "cachelint.corpus"
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file_count",
+        "byte_count",
+        "request_count",
+        "cohort_count",
+        "pattern_count",
+        "provider_reported_cache_status",
+        "usage_trace_count",
+        "sidecar_row_count",
+        "unassigned_attempt_count",
+        "traced_request_count",
+        "observed_finding_count"
+      ],
+      "properties": {
+        "file_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "byte_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "request_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cohort_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "pattern_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "provider_reported_cache_status": {
+          "const": "sidecar"
+        },
+        "usage_trace_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "sidecar_row_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "unassigned_attempt_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "traced_request_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "observed_finding_count": {
+          "$ref": "#/$defs/nonnegative"
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/group"
+      }
+    },
+    "patterns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/pattern"
+      }
+    },
+    "observed_findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observed_finding"
+      }
+    }
+  },
+  "$defs": {
+    "nonnegative": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positive": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "provider": {
+      "enum": [
+        "anthropic",
+        "openai"
+      ]
+    },
+    "safe_path": {
+      "type": "string",
+      "pattern": "^(?:tools|system|messages)(?:\\[[0-9]+\\])?(?:\\.(?:role|content|name|tool_call_id|tool_calls|type|text|cache_control|prompt_cache_breakpoint)(?:\\[[0-9]+\\])?)*$"
+    },
+    "kind": {
+      "enum": [
+        "text_changed",
+        "value_changed",
+        "type_changed",
+        "object_changed",
+        "inserted",
+        "removed"
+      ]
+    },
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tokens",
+        "method",
+        "uncertainty",
+        "minimum_cacheable_tokens",
+        "minimum_comparison",
+        "minimum_source",
+        "rules_reviewed_on"
+      ],
+      "properties": {
+        "tokens": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "method": {
+          "enum": [
+            "heuristic",
+            "tiktoken"
+          ]
+        },
+        "uncertainty": {
+          "enum": [
+            "wide; content and provider framing can change the count",
+            "modeled content only; provider framing and hidden tokens excluded"
+          ]
+        },
+        "minimum_cacheable_tokens": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/positive"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "minimum_comparison": {
+          "enum": [
+            "estimate_below",
+            "estimate_at_or_above",
+            "unknown"
+          ]
+        },
+        "minimum_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "rules_reviewed_on": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "divergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "kind",
+        "offset"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/safe_path"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "offset": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonnegative"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prompt_status",
+        "common_prefix_segments",
+        "first_divergence",
+        "context_differences",
+        "coverage_warnings",
+        "finding_codes",
+        "prefix_estimate"
+      ],
+      "properties": {
+        "prompt_status": {
+          "enum": [
+            "identical",
+            "diverged",
+            "insufficient_data"
+          ]
+        },
+        "common_prefix_segments": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "first_divergence": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/divergence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "context_differences": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "model",
+              "max_tokens",
+              "max_completion_tokens",
+              "temperature",
+              "top_p",
+              "top_k",
+              "stream",
+              "stop",
+              "stop_sequences",
+              "tool_choice",
+              "cache_control",
+              "prompt_cache_key",
+              "prompt_cache_options",
+              "prompt_cache_retention",
+              "response_format",
+              "unmodeled_context"
+            ]
+          }
+        },
+        "coverage_warnings": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "opaque_content",
+              "unmodeled_context"
+            ]
+          }
+        },
+        "finding_codes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "prompt_identical",
+              "prompt_text_changed",
+              "prompt_structure_changed",
+              "prompt_inserted",
+              "prompt_removed",
+              "context_changed",
+              "coverage_limited",
+              "insufficient_data"
+            ]
+          }
+        },
+        "prefix_estimate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/estimate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "provider",
+        "file_count",
+        "request_count",
+        "paired_count",
+        "identical_count",
+        "diverged_count",
+        "context_changed_count",
+        "coverage_limited_count",
+        "comparison",
+        "usage"
+      ],
+      "properties": {
+        "index": {
+          "$ref": "#/$defs/positive"
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "file_count": {
+          "$ref": "#/$defs/positive"
+        },
+        "request_count": {
+          "$ref": "#/$defs/positive"
+        },
+        "paired_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "identical_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "diverged_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "context_changed_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "coverage_limited_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "comparison": {
+          "$ref": "#/$defs/comparison"
+        },
+        "usage": {
+          "$ref": "#/$defs/usage"
+        }
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "group_index",
+        "provider",
+        "category",
+        "path",
+        "kind",
+        "common_prefix_segments",
+        "count",
+        "text_offset_min",
+        "text_offset_max",
+        "context_changed_count",
+        "coverage_limited_count",
+        "prefix_estimate"
+      ],
+      "properties": {
+        "rank": {
+          "$ref": "#/$defs/positive"
+        },
+        "group_index": {
+          "$ref": "#/$defs/positive"
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "category": {
+          "enum": [
+            "tools",
+            "system",
+            "messages"
+          ]
+        },
+        "path": {
+          "$ref": "#/$defs/safe_path"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "common_prefix_segments": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "count": {
+          "$ref": "#/$defs/positive"
+        },
+        "text_offset_min": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonnegative"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text_offset_max": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonnegative"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "context_changed_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "coverage_limited_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "prefix_estimate": {
+          "$ref": "#/$defs/estimate"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_count",
+        "traced_request_count",
+        "cache_read_positive_count",
+        "cache_read_zero_count",
+        "cache_read_unknown_count",
+        "known_cache_read_tokens",
+        "cache_write_positive_count",
+        "cache_write_zero_count",
+        "cache_write_unknown_count",
+        "known_cache_write_tokens",
+        "status_counts"
+      ],
+      "properties": {
+        "request_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "traced_request_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cache_read_positive_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cache_read_zero_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cache_read_unknown_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "known_cache_read_tokens": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cache_write_positive_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cache_write_zero_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "cache_write_unknown_count": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "known_cache_write_tokens": {
+          "$ref": "#/$defs/nonnegative"
+        },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reported",
+            "absent",
+            "invalid",
+            "too_large",
+            "streaming",
+            "http_error",
+            "incomplete",
+            "unmatched",
+            "missing_sidecar",
+            "missing_trace"
+          ],
+          "properties": {
+            "reported": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "absent": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "invalid": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "too_large": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "streaming": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "http_error": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "incomplete": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "unmatched": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "missing_sidecar": {
+              "$ref": "#/$defs/nonnegative"
+            },
+            "missing_trace": {
+              "$ref": "#/$defs/nonnegative"
+            }
+          }
+        }
+      }
+    },
+    "observed_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank",
+        "group_index",
+        "provider",
+        "code",
+        "count",
+        "path",
+        "evidence_quality",
+        "observation",
+        "plausible_causes",
+        "actions"
+      ],
+      "properties": {
+        "rank": {
+          "$ref": "#/$defs/positive"
+        },
+        "group_index": {
+          "$ref": "#/$defs/positive"
+        },
+        "provider": {
+          "$ref": "#/$defs/provider"
+        },
+        "code": {
+          "enum": [
+            "matching_prefix_no_read",
+            "divergent_prefix_no_read",
+            "read_below_modeled_minimum",
+            "read_with_divergence",
+            "context_changed_no_read",
+            "short_modeled_prefix",
+            "coverage_limited",
+            "missing_observation"
+          ]
+        },
+        "count": {
+          "$ref": "#/$defs/positive"
+        },
+        "path": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/safe_path"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_quality": {
+          "enum": [
+            "observed",
+            "limited",
+            "unknown"
+          ]
+        },
+        "observation": {
+          "type": "string"
+        },
+        "plausible_causes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

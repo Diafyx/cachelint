@@ -82,6 +82,7 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/_compare.py",
             "cachelint/_corpus.py",
             "cachelint/_estimate.py",
+            "cachelint/_evidence.py",
             "cachelint/_ingest.py",
             "cachelint/_observed.py",
             "cachelint/_usage.py",
@@ -92,6 +93,7 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/py.typed",
             "cachelint/cache_rules.json",
             "cachelint/corpus_report_v1.schema.json",
+            "cachelint/corpus_report_v2.schema.json",
             "cachelint/usage_sidecar_v1.schema.json",
             "cachelint/usage_report_v1.schema.json",
         }
@@ -100,6 +102,11 @@ def inspect(dist_dir: Path) -> None:
         schema = json.loads(wheel.read("cachelint/corpus_report_v1.schema.json"))
         if schema.get("properties", {}).get("schema_version") != {"const": 1}:
             raise ValueError("Wheel corpus report schema is invalid")
+        observed_schema = json.loads(
+            wheel.read("cachelint/corpus_report_v2.schema.json")
+        )
+        if observed_schema.get("properties", {}).get("schema_version") != {"const": 2}:
+            raise ValueError("Wheel observed corpus report schema is invalid")
         usage_schema = json.loads(wheel.read("cachelint/usage_sidecar_v1.schema.json"))
         if usage_schema.get("properties", {}).get("schema_version") != {"const": 1}:
             raise ValueError("Wheel usage sidecar schema is invalid")
@@ -134,6 +141,7 @@ def inspect(dist_dir: Path) -> None:
             "docs/corpus.md",
             "docs/design/0004-cache-usage-sidecar-contract.md",
             "docs/design/0005-observed-usage-join-contract.md",
+            "docs/design/0006-observed-corpus-findings.md",
             "docs/releases/0.2.0a1.md",
             "docs/releases/0.1.0a3.md",
             "docs/design/0003-private-sdk-recording-contract.md",
@@ -141,6 +149,7 @@ def inspect(dist_dir: Path) -> None:
             "src/cachelint/_compare.py",
             "src/cachelint/_corpus.py",
             "src/cachelint/_estimate.py",
+            "src/cachelint/_evidence.py",
             "src/cachelint/_ingest.py",
             "src/cachelint/_observed.py",
             "src/cachelint/_usage.py",
@@ -151,6 +160,7 @@ def inspect(dist_dir: Path) -> None:
             "src/cachelint/py.typed",
             "src/cachelint/cache_rules.json",
             "src/cachelint/corpus_report_v1.schema.json",
+            "src/cachelint/corpus_report_v2.schema.json",
             "src/cachelint/usage_sidecar_v1.schema.json",
             "src/cachelint/usage_report_v1.schema.json",
         }
@@ -163,6 +173,13 @@ def inspect(dist_dir: Path) -> None:
             "schema_version"
         ) != {"const": 1}:
             raise ValueError("Sdist corpus report schema is invalid")
+        observed_schema_file = sdist.extractfile(
+            f"cachelint-{version}/src/cachelint/corpus_report_v2.schema.json"
+        )
+        if observed_schema_file is None or json.load(observed_schema_file).get(
+            "properties", {}
+        ).get("schema_version") != {"const": 2}:
+            raise ValueError("Sdist observed corpus report schema is invalid")
         usage_schema_file = sdist.extractfile(
             f"cachelint-{version}/src/cachelint/usage_sidecar_v1.schema.json"
         )

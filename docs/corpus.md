@@ -28,8 +28,9 @@ for pattern in result.patterns:
 ```
 
 Pass one path, an iterable of paths, or directories. A direct file path may
-have any extension; a directory is searched recursively for files ending in
-`.jsonl` (case-insensitive). Other directory files are ignored. Every chosen
+have any extension except `.usage.jsonl`; a directory is searched recursively
+for files ending in `.jsonl` (case-insensitive), excluding recorder sidecars.
+Other directory files are ignored. Every chosen
 path must be a regular file or directory, and symlinks anywhere in discovered
 inputs are rejected. Duplicate normalized paths, including a file listed both
 directly and through a directory, are rejected. Files are read in normalized
@@ -101,8 +102,48 @@ contains no model names, request values, excerpts, source paths, or persistent
 content hashes. Errors can still contain local paths as described above.
 For recordings with an opt-in usage sidecar, use the separate
 [`analyze_usage` and `cachelint usage` workflow](usage.md) to validate and
-summarize provider observations. The corpus report version 1 remains a
-request-only report.
+summarize provider observations. To combine observations with modeled corpus
+patterns, use `analyze_observed_corpus` below. The corpus report version 1
+remains a request-only report.
+
+## Join opt-in usage observations
+
+```powershell
+cachelint corpus recordings --usage-trace anthropic recordings/run.jsonl recordings/run.jsonl.usage.jsonl --format json --output observed-report.json
+```
+
+Repeat `--usage-trace PROVIDER REQUESTS SIDECAR` for each same-session pair.
+The request file must belong to the corpus and contain only that provider.
+`UsageLimits` bounds the combined usage traces across both providers; pass
+`usage_limits=` to the Python API to adjust its defaults.
+The command uses [report schema v2](../src/cachelint/corpus_report_v2.schema.json)
+when traces are supplied. Recursive directory discovery skips recorder
+`.usage.jsonl` sidecars. It rejects a sidecar passed directly as a request
+corpus path. The existing `cachelint usage` command remains available for a
+standalone, more detailed observation report.
+
+```python
+from cachelint import CorpusUsageTrace, analyze_observed_corpus
+from cachelint.report import corpus_report
+
+result = analyze_observed_corpus(
+    "recordings",
+    usage_traces=[CorpusUsageTrace("anthropic", "recordings/run.jsonl", "recordings/run.jsonl.usage.jsonl")],
+)
+document = corpus_report(result)
+assert document["schema_version"] == 2
+```
+
+Version 2 adds `summary` trace/row/request/finding counts, a `usage` summary
+to each cohort, and ranked `observed_findings`. A missing trace, missing
+sidecar row, or unusable provider counter counts as unknown, never as a miss.
+Read and write positive, zero, and unknown counts are separate. Known token
+totals are partial if unknown counts are nonzero; OpenAI writes are unknown
+under the pinned recorder contract. Findings can overlap, and their counts
+refer to comparisons with the cohort's first request. Observed reads do not
+identify reused bytes or a private cache key. Local prefix estimates and
+bundled model thresholds are advisory. See [ADR 0006](design/0006-observed-corpus-findings.md)
+for ranking, code meanings, privacy, and interpretation limits.
 
 Pairing and aggregation make one pass over the nonreference requests per
 cohort and never enumerate all request pairs. Corpus input remains subject to

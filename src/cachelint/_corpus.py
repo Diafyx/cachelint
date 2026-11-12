@@ -191,6 +191,11 @@ def _discover_files(
     roots_seen = 0
 
     def add_file(path: Path) -> None:
+        if path.name.lower().endswith(".usage.jsonl"):
+            raise InvalidRequestError(
+                "usage sidecar is not a request corpus input",
+                SourceLocation(str(path)),
+            )
         _reject_symlink_components(path)
         try:
             resolved = path.resolve(strict=True)
@@ -252,9 +257,15 @@ def _discover_files(
                         if entry.is_dir(follow_symlinks=False):
                             children.append(child)
                         elif entry.is_file(follow_symlinks=False):
-                            if child.suffix.lower() == ".jsonl":
+                            if (
+                                child.suffix.lower() == ".jsonl"
+                                and not child.name.lower().endswith(".usage.jsonl")
+                            ):
                                 add_file(child)
-                        elif child.suffix.lower() == ".jsonl":
+                        elif (
+                            child.suffix.lower() == ".jsonl"
+                            and not child.name.lower().endswith(".usage.jsonl")
+                        ):
                             raise InvalidRequestError(
                                 "input must be a regular file",
                                 SourceLocation(str(child)),
@@ -271,14 +282,14 @@ def _discover_files(
     return tuple(files[key] for key in sorted(files))
 
 
-def analyze_corpus(
+def _analyze_corpus_with_requests(
     paths: str | Path | Iterable[str | Path],
     *,
     provider: Provider | None = None,
     estimate_method: EstimateMethod = "heuristic",
     limits: CorpusLimits | None = None,
-) -> CorpusResult:
-    """Group bounded JSONL inputs by provider/model and compare each group.
+) -> tuple[CorpusResult, dict[Path, tuple[CanonicalRequest, ...]]]:
+    """Analyze a corpus and retain private per-file requests for safe joins.
 
     Files are read in normalized absolute-path order, then physical line order.
     Results omit model strings, source paths, and all request values.
@@ -296,6 +307,7 @@ def analyze_corpus(
     files = _discover_files(paths, limits)
     groups: dict[tuple[Provider, str], list[CanonicalRequest]] = {}
     group_files: dict[tuple[Provider, str], set[int]] = {}
+    file_requests: dict[Path, list[CanonicalRequest]] = {path: [] for path in files}
     byte_count = 0
     request_count = 0
     for file_index, path in enumerate(files):
@@ -333,6 +345,7 @@ def analyze_corpus(
                     key = (request.provider, request.model)
                     groups.setdefault(key, []).append(request)
                     group_files.setdefault(key, set()).add(file_index)
+                    file_requests[path].append(request)
                     request_count += 1
         except OSError:
             raise InvalidRequestError(
@@ -375,4 +388,25 @@ def analyze_corpus(
             1,
         )
     )
-    return CorpusResult(len(files), byte_count, request_count, tuple(summaries), ranked)
+    result = CorpusResult(
+        len(files), byte_count, request_count, tuple(summaries), ranked
+    )
+    return result, {path: tuple(requests) for path, requests in file_requests.items()}
+
+
+def analyze_corpus(
+    paths: str | Path | Iterable[str | Path],
+    *,
+    provider: Provider | None = None,
+    estimate_method: EstimateMethod = "heuristic",
+    limits: CorpusLimits | None = None,
+) -> CorpusResult:
+    """Group bounded JSONL inputs by provider/model and compare each group.
+
+    Files are read in normalized absolute-path order, then physical line order.
+    Results omit model strings, source paths, and all request values.
+    """
+    result, _ = _analyze_corpus_with_requests(
+        paths, provider=provider, estimate_method=estimate_method, limits=limits
+    )
+    return result

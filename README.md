@@ -13,9 +13,10 @@ The 0.2 alpha series adds bounded multi-file corpus analysis through
 `analyze_corpus` and `cachelint corpus`. It groups mixed recordings by provider
 and exact model, ranks recurring prefix differences, and exports content-safe
 reports. See the [corpus guide](docs/corpus.md) for limits, ordering, and the
-report contract.
+report contract. Opt-in usage sidecars can be joined to a corpus for ranked,
+evidence-labeled findings in report schema v2. Request-only output remains v1.
 
-The next development series adds opt-in provider cache-usage counters to a
+The current development series adds opt-in provider cache-usage counters to a
 separate private SDK-recording sidecar. The raw request JSONL format stays
 analyzer-compatible. See the [recording guide](docs/recording.md) for the
 supported SDK versions, file permissions, and limitations.

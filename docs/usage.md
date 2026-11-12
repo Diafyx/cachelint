@@ -76,8 +76,8 @@ A modeled prefix is a local approximation of request similarity. A positive
 provider read counter reports usage for one outbound attempt; neither fact
 reveals the provider's private cache key or proves which request bytes were
 reused. There are no price or savings estimates. Use
-[`cachelint corpus`](corpus.md) for modeled cohort patterns; issue #40 will
-combine those patterns with this observed evidence.
+[`cachelint corpus`](corpus.md) for modeled cohort patterns and its opt-in
+version 2 report that combines those patterns with this observed evidence.
 
 The paired files have no integrity hash or signed association. Protect both
 from edits: a valid replacement request at the same byte offset cannot be
