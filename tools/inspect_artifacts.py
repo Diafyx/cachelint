@@ -83,6 +83,7 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/_corpus.py",
             "cachelint/_estimate.py",
             "cachelint/_ingest.py",
+            "cachelint/_usage.py",
             "cachelint/recording.py",
             "cachelint/_version.py",
             "cachelint/cli.py",
@@ -90,12 +91,16 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/py.typed",
             "cachelint/cache_rules.json",
             "cachelint/corpus_report_v1.schema.json",
+            "cachelint/usage_sidecar_v1.schema.json",
         }
         if not required_wheel.issubset(names):
             raise ValueError("Wheel is missing package files")
         schema = json.loads(wheel.read("cachelint/corpus_report_v1.schema.json"))
         if schema.get("properties", {}).get("schema_version") != {"const": 1}:
             raise ValueError("Wheel corpus report schema is invalid")
+        usage_schema = json.loads(wheel.read("cachelint/usage_sidecar_v1.schema.json"))
+        if usage_schema.get("properties", {}).get("schema_version") != {"const": 1}:
+            raise ValueError("Wheel usage sidecar schema is invalid")
         if not any(name.endswith("/LICENSE") for name in names):
             raise ValueError("Wheel is missing LICENSE")
         entry_points = [
@@ -117,6 +122,7 @@ def inspect(dist_dir: Path) -> None:
             "pyproject.toml",
             "docs/recording.md",
             "docs/corpus.md",
+            "docs/design/0004-cache-usage-sidecar-contract.md",
             "docs/releases/0.2.0a1.md",
             "docs/releases/0.1.0a3.md",
             "docs/design/0003-private-sdk-recording-contract.md",
@@ -125,6 +131,7 @@ def inspect(dist_dir: Path) -> None:
             "src/cachelint/_corpus.py",
             "src/cachelint/_estimate.py",
             "src/cachelint/_ingest.py",
+            "src/cachelint/_usage.py",
             "src/cachelint/recording.py",
             "src/cachelint/_version.py",
             "src/cachelint/cli.py",
@@ -132,6 +139,7 @@ def inspect(dist_dir: Path) -> None:
             "src/cachelint/py.typed",
             "src/cachelint/cache_rules.json",
             "src/cachelint/corpus_report_v1.schema.json",
+            "src/cachelint/usage_sidecar_v1.schema.json",
         }
         if not required_sdist.issubset(names):
             raise ValueError("Sdist is missing source or metadata files")
@@ -142,6 +150,13 @@ def inspect(dist_dir: Path) -> None:
             "schema_version"
         ) != {"const": 1}:
             raise ValueError("Sdist corpus report schema is invalid")
+        usage_schema_file = sdist.extractfile(
+            f"cachelint-{version}/src/cachelint/usage_sidecar_v1.schema.json"
+        )
+        if usage_schema_file is None or json.load(usage_schema_file).get(
+            "properties", {}
+        ).get("schema_version") != {"const": 1}:
+            raise ValueError("Sdist usage sidecar schema is invalid")
         if any(".tmp/" in name for name in names):
             raise ValueError("Sdist includes local .tmp files")
 

@@ -15,6 +15,11 @@ and exact model, ranks recurring prefix differences, and exports content-safe
 reports. See the [corpus guide](docs/corpus.md) for limits, ordering, and the
 report contract.
 
+The next development series adds opt-in provider cache-usage counters to a
+separate private SDK-recording sidecar. The raw request JSONL format stays
+analyzer-compatible. See the [recording guide](docs/recording.md) for the
+supported SDK versions, file permissions, and limitations.
+
 ## Requirements and current usage
 
 Python 3.11 or newer is required. The initial CI matrix covers Python 3.11 through 3.14.
