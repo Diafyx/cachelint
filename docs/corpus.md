@@ -128,7 +128,11 @@ from cachelint.report import corpus_report
 
 result = analyze_observed_corpus(
     "recordings",
-    usage_traces=[CorpusUsageTrace("anthropic", "recordings/run.jsonl", "recordings/run.jsonl.usage.jsonl")],
+    usage_traces=[
+        CorpusUsageTrace(
+            "anthropic", "recordings/run.jsonl", "recordings/run.jsonl.usage.jsonl"
+        )
+    ],
 )
 document = corpus_report(result)
 assert document["schema_version"] == 2
