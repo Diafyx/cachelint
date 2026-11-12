@@ -113,6 +113,8 @@ See [ADR 0004](design/0004-cache-usage-sidecar-contract.md) and the bundled
 sidecar is for the two exact pinned SDK versions and endpoints above. It does
 not measure cache behavior when the provider omits counters, and retries are
 distinct outbound attempts rather than independent user requests.
+To validate and correlate a completed pair offline, use the
+[usage guide](usage.md).
 
 ## File and privacy rules
 

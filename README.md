@@ -136,6 +136,12 @@ The [corpus guide](docs/corpus.md) documents its deterministic pairing,
 privacy-safe results, limits, ranking rules, `cachelint corpus` command, and
 versioned JSON report contract.
 
+For recordings made with `capture_usage=True`, `analyze_usage` and
+`cachelint usage` join each request log to its private sidecar and report
+provider-observed cache read counts with missing evidence kept explicit.
+The [usage guide](docs/usage.md) documents the exact join, supported fields,
+limits, and privacy contract.
+
 The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` added opt-in request recording through the two pinned SDKs. `0.2.0a1` adds bounded corpus analysis and versioned reports. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.

@@ -24,6 +24,14 @@ from cachelint._ingest import (
     SourceLocation,
     canonicalize_request,
 )
+from cachelint._observed import (
+    UsageGroup,
+    UsageLimits,
+    UsageObservation,
+    UsageResult,
+    UsageTrace,
+    analyze_usage,
+)
 from cachelint._version import __version__
 
 __all__ = [
@@ -43,6 +51,12 @@ __all__ = [
     "PrefixEstimate",
     "Segment",
     "SourceLocation",
+    "UsageGroup",
+    "UsageLimits",
+    "UsageObservation",
+    "UsageResult",
+    "UsageTrace",
+    "analyze_usage",
     "analyze_corpus",
     "canonicalize_request",
     "compare_requests",

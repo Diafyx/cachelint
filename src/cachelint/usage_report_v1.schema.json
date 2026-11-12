@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/usage_report_v1.schema.json",
+  "title": "cachelint usage observation report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_type", "summary", "groups", "observations"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "report_type": {"const": "cachelint.usage"},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "trace_count", "byte_count", "request_count", "sidecar_row_count", "unassigned_attempt_count", "cohort_count"],
+      "properties": {
+        "provider": {"$ref": "#/$defs/provider"},
+        "trace_count": {"$ref": "#/$defs/positive"},
+        "byte_count": {"$ref": "#/$defs/nonnegative"},
+        "request_count": {"$ref": "#/$defs/nonnegative"},
+        "sidecar_row_count": {"$ref": "#/$defs/nonnegative"},
+        "unassigned_attempt_count": {"$ref": "#/$defs/nonnegative"},
+        "cohort_count": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "groups": {"type": "array", "items": {"$ref": "#/$defs/group"}},
+    "observations": {"type": "array", "items": {"$ref": "#/$defs/observation"}}
+  },
+  "$defs": {
+    "nonnegative": {"type": "integer", "minimum": 0},
+    "positive": {"type": "integer", "minimum": 1},
+    "nullable_nonnegative": {"type": ["integer", "null"], "minimum": 0},
+    "nullable_positive": {"type": ["integer", "null"], "minimum": 1},
+    "provider": {"enum": ["anthropic", "openai"]},
+    "evidence_status": {"enum": ["reported", "absent", "invalid", "too_large", "streaming", "http_error", "incomplete", "unmatched", "missing_sidecar"]},
+    "status_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reported", "absent", "invalid", "too_large", "streaming", "http_error", "incomplete", "unmatched", "missing_sidecar"],
+      "properties": {
+        "reported": {"$ref": "#/$defs/nonnegative"},
+        "absent": {"$ref": "#/$defs/nonnegative"},
+        "invalid": {"$ref": "#/$defs/nonnegative"},
+        "too_large": {"$ref": "#/$defs/nonnegative"},
+        "streaming": {"$ref": "#/$defs/nonnegative"},
+        "http_error": {"$ref": "#/$defs/nonnegative"},
+        "incomplete": {"$ref": "#/$defs/nonnegative"},
+        "unmatched": {"$ref": "#/$defs/nonnegative"},
+        "missing_sidecar": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "provider", "request_count", "status_counts", "cache_read_positive_count", "cache_read_zero_count", "cache_read_unknown_count", "known_cache_read_tokens", "cache_write_positive_count", "cache_write_zero_count", "cache_write_unknown_count", "known_cache_write_tokens"],
+      "properties": {
+        "index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "request_count": {"$ref": "#/$defs/nonnegative"},
+        "status_counts": {"$ref": "#/$defs/status_counts"},
+        "cache_read_positive_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_read_zero_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_read_unknown_count": {"$ref": "#/$defs/nonnegative"},
+        "known_cache_read_tokens": {"$ref": "#/$defs/nonnegative"},
+        "cache_write_positive_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_write_zero_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_write_unknown_count": {"$ref": "#/$defs/nonnegative"},
+        "known_cache_write_tokens": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trace_index", "request_index", "group_index", "attempt_id", "usage_status", "cache_read_tokens", "cache_write_tokens"],
+      "properties": {
+        "trace_index": {"$ref": "#/$defs/positive"},
+        "request_index": {"$ref": "#/$defs/positive"},
+        "group_index": {"$ref": "#/$defs/positive"},
+        "attempt_id": {"$ref": "#/$defs/nullable_positive"},
+        "usage_status": {"$ref": "#/$defs/evidence_status"},
+        "cache_read_tokens": {"$ref": "#/$defs/nullable_nonnegative"},
+        "cache_write_tokens": {"$ref": "#/$defs/nullable_nonnegative"}
+      },
+      "allOf": [
+        {"if": {"properties": {"usage_status": {"const": "missing_sidecar"}}}, "then": {"properties": {"attempt_id": {"type": "null"}}}, "else": {"properties": {"attempt_id": {"$ref": "#/$defs/positive"}}}}
+      ]
+    }
+  }
+}
