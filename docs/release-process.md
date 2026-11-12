@@ -3,7 +3,7 @@
 This is the maintainer's reviewed release sequence. The
 [trusted publication design](design/0002-trusted-pypi-publication-controls.md)
 defines the controls implemented by `.github/workflows/release.yml`. The
-[0.2.0a1 release notes](releases/0.2.0a1.md) are the reviewed GitHub prerelease
+[0.2.0a2 release notes](releases/0.2.0a2.md) are the reviewed GitHub prerelease
 body for the current candidate. Merging the release-preparation PR does not
 publish anything.
 
@@ -196,4 +196,50 @@ immutable `v*` tag rules still need maintainer review before publication.
 
 If the run fails, confirm it is terminal and inspect PyPI before retrying. If
 either `0.2.0a1` file was accepted, do not reuse that version; follow the
+recovery rule above.
+
+## Fifth publication: 0.2.0a2
+
+The reviewed `0.2.0a1` wheel and sdist are the prior release. The gate checks
+that project's exact name, Source URL, owner, and two prior filenames, and
+refuses an existing `0.2.0a2` version. It repeats this check after protected
+deployment approval. The private sidecar and version 2 corpus report are
+opt-in; request-only report v1 remains supported.
+
+1. Merge [preparation issue #41](https://github.com/Diafyx/cachelint/issues/41)
+   through its own PR. Confirm the exact resulting `main` commit passes every
+   required CI job, CodeQL, wheel and sdist checks, and synthetic installed
+   examples for both providers. Review the source version, pinned SDK extras,
+   sidecar permissions, retry/offset handling, unknown-counter semantics,
+   schema v1/v2 compatibility, notes, and relevant dependency findings. Keep
+   [release issue #42](https://github.com/Diafyx/cachelint/issues/42) open;
+   it must be the only open issue in milestone `0.2.0a2` at dispatch.
+2. Recheck the protected `pypi` environment in the GitHub UI: only `main`
+   may deploy, reviewer `SEPURI-SAI-KRISHNA` is required, and administrator
+   bypass is disabled. Recheck that the PyPI Trusted Publisher names owner
+   `Diafyx`, repository `cachelint`, workflow `release.yml`, and environment
+   `pypi`. Review both active `v*` tag rulesets. Set the short-lived
+   `RELEASE_APPROVED_VERSION` environment variable to `0.2.0a2` only after
+   reviewing the exact candidate; remove it after publication.
+3. Create an annotated `v0.2.0a2` tag at the reviewed `main` commit, then
+   push that tag as a separate maintainer action. Read back the remote tag
+   target. Never move a published tag.
+4. Dispatch **Publish PyPI prerelease** from `main` with version `0.2.0a2`,
+   the full candidate SHA, and confirmation `publish 0.2.0a2`. Preflight
+   checks branch, commit, tag, CI, milestone, issue states, environment,
+   prior PyPI release, and unused target version.
+5. Before approving the `pypi` deployment in GitHub's UI, compare the run
+   ID, candidate SHA, tag, `cachelint-0.2.0a2` artifact, two filenames,
+   and SHA-256 manifest. The build job smoke-installs the wheel, both pinned
+   SDK extras, and runs synthetic recorded-usage and corpus examples outside
+   the checkout. The publish job rechecks mutable state before uploading the
+   retained bytes through PyPI Trusted Publishing.
+6. Verify PyPI metadata, downloaded file hashes, provenance identity, a
+   fresh core and optional-extra install, standalone usage and opt-in corpus
+   examples, and the GitHub prerelease and its two matching attached files.
+   Record evidence in issue #42, remove the one-time approval, then close
+   issue #42 and milestone `0.2.0a2`.
+
+If the run fails, confirm it is terminal and inspect PyPI before retrying.
+If either `0.2.0a2` file was accepted, do not reuse that version; follow the
 recovery rule above.

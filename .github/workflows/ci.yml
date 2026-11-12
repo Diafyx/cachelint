@@ -105,6 +105,7 @@ jobs:
           WHEEL=$(echo dist/*.whl)
           "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pip install "${WHEEL}[sdk-anthropic,sdk-openai]" pytest
           cp tests/test_recording_sdk.py "$RUNNER_TEMP/test_recording_sdk.py"
+          cp tools/smoke_observed_release.py "$RUNNER_TEMP/smoke_observed_release.py"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "from importlib.metadata import version; import cachelint; assert cachelint.__version__ == version('cachelint')"
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --help
@@ -117,5 +118,7 @@ jobs:
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" diff first.json second.json
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" corpus requests.jsonl --format json --output corpus-wheel.json
           "$RUNNER_TEMP/cachelint-sdist-smoke/bin/cachelint" corpus requests.jsonl --format json --output corpus-sdist.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/python" smoke_observed_release.py
+          "$RUNNER_TEMP/cachelint-sdist-smoke/bin/python" smoke_observed_release.py
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from pathlib import Path; from importlib.resources import files; a=json.loads(Path('corpus-wheel.json').read_text()); b=json.loads(Path('corpus-sdist.json').read_text()); assert a==b and a['schema_version']==1 and a['patterns'][0]['path']=='system'; assert json.loads(files('cachelint').joinpath('corpus_report_v1.schema.json').read_text())['properties']['schema_version']=={'const':1}"
           "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pytest -q test_recording_sdk.py
