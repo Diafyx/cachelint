@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/usage_sidecar_v1.schema.json",
+  "title": "cachelint usage sidecar row v1",
+  "type": "object",
+  "required": ["schema_version", "attempt_id", "capture_status", "usage_status"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "attempt_id": {"type": "integer", "minimum": 1},
+    "capture_status": {"enum": ["written", "skipped", "failed", "unmatched"]},
+    "capture_code": {
+      "enum": ["nonbuffered_body", "invalid_body", "credential_field", "size_limit", "write_failed"]
+    },
+    "request_offset": {"type": "integer", "minimum": 0},
+    "usage_status": {
+      "enum": ["reported", "absent", "invalid", "too_large", "streaming", "http_error", "incomplete", "unmatched"]
+    },
+    "usage": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "input_tokens": {"type": "integer", "minimum": 0},
+        "output_tokens": {"type": "integer", "minimum": 0},
+        "cache_read_input_tokens": {"type": "integer", "minimum": 0},
+        "cache_creation_input_tokens": {"type": "integer", "minimum": 0},
+        "prompt_tokens": {"type": "integer", "minimum": 0},
+        "completion_tokens": {"type": "integer", "minimum": 0},
+        "total_tokens": {"type": "integer", "minimum": 0},
+        "cached_tokens": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"capture_status": {"const": "written"}}},
+      "then": {"required": ["request_offset"]},
+      "else": {"not": {"required": ["request_offset"]}}
+    },
+    {
+      "if": {"properties": {"usage_status": {"const": "reported"}}},
+      "then": {"required": ["usage"]},
+      "else": {"not": {"required": ["usage"]}}
+    }
+  ],
+  "additionalProperties": false
+}

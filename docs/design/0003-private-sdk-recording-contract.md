@@ -6,6 +6,10 @@
 - **Target:** `0.1.0a3`
 - **Reviewed SDK and HTTP transport documentation:** 2026-10-25
 
+The later [ADR 0004](0004-cache-usage-sidecar-contract.md) adds separate,
+opt-in response usage observation. The default request-body recorder described
+here continues to use this original contract.
+
 ## Context
 
 `cachelint` currently reads raw Anthropic Messages or OpenAI Chat Completions
