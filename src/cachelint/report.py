@@ -7,9 +7,11 @@ import json
 from cachelint._compare import ComparisonResult, Divergence
 from cachelint._corpus import CorpusResult
 from cachelint._estimate import PrefixEstimate
+from cachelint._evidence import ObservedCorpusResult
 from cachelint._observed import UsageResult
 
 CORPUS_REPORT_SCHEMA_VERSION = 1
+OBSERVED_CORPUS_REPORT_SCHEMA_VERSION = 2
 USAGE_REPORT_SCHEMA_VERSION = 1
 
 
@@ -51,7 +53,7 @@ def _comparison_document(comparison: ComparisonResult) -> dict[str, object]:
     }
 
 
-def corpus_report(result: CorpusResult) -> dict[str, object]:
+def _corpus_report_v1(result: CorpusResult) -> dict[str, object]:
     """Project only approved fields from a corpus result into schema version 1."""
     return {
         "schema_version": CORPUS_REPORT_SCHEMA_VERSION,
@@ -100,13 +102,93 @@ def corpus_report(result: CorpusResult) -> dict[str, object]:
     }
 
 
-def render_corpus_json(result: CorpusResult) -> str:
+def corpus_report(result: CorpusResult | ObservedCorpusResult) -> dict[str, object]:
+    """Project request-only v1 or observed v2 without private input values."""
+    if isinstance(result, CorpusResult):
+        return _corpus_report_v1(result)
+    document = _corpus_report_v1(result.corpus)
+    document["schema_version"] = OBSERVED_CORPUS_REPORT_SCHEMA_VERSION
+    summary = document["summary"]
+    assert isinstance(summary, dict)
+    summary.update(
+        provider_reported_cache_status="sidecar",
+        usage_trace_count=result.trace_count,
+        sidecar_row_count=result.sidecar_row_count,
+        unassigned_attempt_count=result.unassigned_attempt_count,
+        traced_request_count=result.traced_request_count,
+        observed_finding_count=len(result.findings),
+    )
+    groups = document["groups"]
+    assert isinstance(groups, list)
+    for group, usage in zip(groups, result.usage_groups, strict=True):
+        assert isinstance(group, dict)
+        group["usage"] = {
+            "request_count": usage.request_count,
+            "traced_request_count": usage.traced_request_count,
+            "status_counts": dict(usage.status_counts),
+            "cache_read_positive_count": usage.cache_read_positive_count,
+            "cache_read_zero_count": usage.cache_read_zero_count,
+            "cache_read_unknown_count": usage.cache_read_unknown_count,
+            "known_cache_read_tokens": usage.known_cache_read_tokens,
+            "cache_write_positive_count": usage.cache_write_positive_count,
+            "cache_write_zero_count": usage.cache_write_zero_count,
+            "cache_write_unknown_count": usage.cache_write_unknown_count,
+            "known_cache_write_tokens": usage.known_cache_write_tokens,
+        }
+    document["observed_findings"] = [
+        {
+            "rank": finding.rank,
+            "group_index": finding.group_index,
+            "provider": finding.provider,
+            "code": finding.code,
+            "count": finding.count,
+            "path": finding.path,
+            "evidence_quality": finding.evidence_quality,
+            "observation": finding.observation,
+            "plausible_causes": list(finding.plausible_causes),
+            "actions": list(finding.actions),
+        }
+        for finding in result.findings
+    ]
+    return document
+
+
+def render_corpus_json(result: CorpusResult | ObservedCorpusResult) -> str:
     """Render deterministic UTF-8 compatible JSON with a final newline."""
     return json.dumps(corpus_report(result), indent=2, sort_keys=True) + "\n"
 
 
-def render_corpus_text(result: CorpusResult) -> str:
+def render_corpus_text(result: CorpusResult | ObservedCorpusResult) -> str:
     """Render a concise, fixed-label terminal report without source values."""
+    if isinstance(result, ObservedCorpusResult):
+        lines = render_corpus_text(result.corpus).rstrip("\n").split("\n")
+        lines[6] = "Provider-reported cached usage: opt-in sidecars"
+        lines.append(
+            f"Observed sidecars: {result.trace_count}; traced requests: "
+            f"{result.traced_request_count}; rows: {result.sidecar_row_count}; "
+            f"unassigned attempts: {result.unassigned_attempt_count}"
+        )
+        for usage_group in result.usage_groups:
+            lines.append(
+                f"Cohort {usage_group.group_index} observed: "
+                f"read +{usage_group.cache_read_positive_count} "
+                f"zero {usage_group.cache_read_zero_count} "
+                f"unknown {usage_group.cache_read_unknown_count}; "
+                f"known read tokens {usage_group.known_cache_read_tokens}; "
+                f"write +{usage_group.cache_write_positive_count} "
+                f"zero {usage_group.cache_write_zero_count} "
+                f"unknown {usage_group.cache_write_unknown_count}"
+            )
+        for finding in result.findings:
+            lines.append(
+                f"Observed #{finding.rank} cohort {finding.group_index}: "
+                f"{finding.code} ({finding.evidence_quality}); "
+                f"count {finding.count}; path {finding.path or 'none'}"
+            )
+            lines.append(f"  Observation: {finding.observation}")
+            lines.extend(f"  Possible cause: {x}" for x in finding.plausible_causes)
+            lines.extend(f"  Action: {x}" for x in finding.actions)
+        return "\n".join(lines) + "\n"
     lines = [
         "Corpus report",
         f"Files: {result.file_count}",

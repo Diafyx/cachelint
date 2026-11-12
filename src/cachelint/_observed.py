@@ -326,13 +326,13 @@ def _metric_counts(values: list[int | None]) -> tuple[int, int, int, int]:
     )
 
 
-def analyze_usage(
+def _analyze_usage_with_requests(
     traces: UsageTrace | Iterable[UsageTrace],
     *,
     provider: Provider,
     limits: UsageLimits | None = None,
-) -> UsageResult:
-    """Join complete private trace pairs by exact byte offset, then drop content."""
+) -> tuple[UsageResult, tuple[tuple[Path, CanonicalRequest], ...]]:
+    """Join traces and retain private request identities for corpus comparison."""
     if provider not in ("anthropic", "openai"):
         raise InvalidRequestError("unsupported usage provider")
     if limits is None:
@@ -361,7 +361,7 @@ def analyze_usage(
         raise InvalidRequestError("at least one usage trace is required")
     pairs.sort(key=lambda pair: os.path.normcase(str(pair[0])))
     byte_count = row_count = unassigned_count = 0
-    entries: list[tuple[int, CanonicalRequest, _SidecarRow | None]] = []
+    entries: list[tuple[Path, int, CanonicalRequest, _SidecarRow | None]] = []
     for trace_index, (request_path, sidecar_path) in enumerate(pairs, 1):
         request_rows, size = _request_rows(
             request_path,
@@ -385,13 +385,13 @@ def analyze_usage(
                 SourceLocation(str(sidecar_path)),
             )
         entries.extend(
-            (trace_index, request, offsets.get(offset))
+            (request_path, trace_index, request, offsets.get(offset))
             for offset, request in request_rows.items()
         )
-    keys = sorted({(request.provider, request.model) for _, request, _ in entries})
+    keys = sorted({(request.provider, request.model) for _, _, request, _ in entries})
     indexes = {key: index for index, key in enumerate(keys, 1)}
     observations: list[UsageObservation] = []
-    for index, (trace_index, request, row) in enumerate(entries, 1):
+    for index, (_, trace_index, request, row) in enumerate(entries, 1):
         usage = row.usage if row is not None else {}
         read_key = (
             "cache_read_input_tokens" if provider == "anthropic" else "cached_tokens"
@@ -428,7 +428,7 @@ def analyze_usage(
                 group_index, group_key[0], len(members), status_counts, *read, *write
             )
         )
-    return UsageResult(
+    result = UsageResult(
         provider,
         len(pairs),
         byte_count,
@@ -438,3 +438,15 @@ def analyze_usage(
         tuple(groups),
         tuple(observations),
     )
+    return result, tuple((path, request) for path, _, request, _ in entries)
+
+
+def analyze_usage(
+    traces: UsageTrace | Iterable[UsageTrace],
+    *,
+    provider: Provider,
+    limits: UsageLimits | None = None,
+) -> UsageResult:
+    """Join complete private trace pairs by exact byte offset, then drop content."""
+    result, _ = _analyze_usage_with_requests(traces, provider=provider, limits=limits)
+    return result

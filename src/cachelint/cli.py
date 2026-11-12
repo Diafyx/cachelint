@@ -11,6 +11,7 @@ from typing import cast
 from cachelint import (
     ComparisonResult,
     CorpusLimits,
+    CorpusUsageTrace,
     IncomparableRequestsError,
     InvalidRequestError,
     Provider,
@@ -18,6 +19,7 @@ from cachelint import (
     UsageTrace,
     __version__,
     analyze_corpus,
+    analyze_observed_corpus,
     analyze_usage,
     compare_requests,
 )
@@ -78,6 +80,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         metavar="PATH",
         help="atomically replace a report file (default: stdout)",
+    )
+    corpus.add_argument(
+        "--usage-trace",
+        nargs=3,
+        action="append",
+        default=[],
+        metavar=("PROVIDER", "REQUESTS", "SIDECAR"),
+        help="opt-in same-session usage sidecar; repeat per request file",
     )
     defaults = CorpusLimits()
     for name, default in (
@@ -224,16 +234,30 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             return 0
         if args.command == "corpus":
-            corpus_result = analyze_corpus(
-                args.paths,
-                provider=provider,
-                estimate_method=args.estimate_method,
-                limits=CorpusLimits(
-                    max_files=args.max_files,
-                    max_bytes=args.max_bytes,
-                    max_requests=args.max_requests,
-                    max_entries=args.max_entries,
-                ),
+            corpus_limits = CorpusLimits(
+                max_files=args.max_files,
+                max_bytes=args.max_bytes,
+                max_requests=args.max_requests,
+                max_entries=args.max_entries,
+            )
+            corpus_result = (
+                analyze_observed_corpus(
+                    args.paths,
+                    usage_traces=[
+                        CorpusUsageTrace(cast(Provider, item[0]), item[1], item[2])
+                        for item in args.usage_trace
+                    ],
+                    provider=provider,
+                    estimate_method=args.estimate_method,
+                    limits=corpus_limits,
+                )
+                if args.usage_trace
+                else analyze_corpus(
+                    args.paths,
+                    provider=provider,
+                    estimate_method=args.estimate_method,
+                    limits=corpus_limits,
+                )
             )
             rendered = (
                 render_corpus_json(corpus_result)
@@ -243,7 +267,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.output is None:
                 print(rendered, end="")
             else:
-                _write_report(args.output, args.paths, rendered)
+                _write_report(
+                    args.output,
+                    [
+                        *args.paths,
+                        *(path for item in args.usage_trace for path in item[1:]),
+                    ],
+                    rendered,
+                )
             return 0
         if args.command == "analyze":
             result = compare_requests(

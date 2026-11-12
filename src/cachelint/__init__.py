@@ -15,6 +15,13 @@ from cachelint._corpus import (
     analyze_corpus,
 )
 from cachelint._estimate import PrefixEstimate
+from cachelint._evidence import (
+    CorpusUsageGroup,
+    CorpusUsageTrace,
+    ObservedCorpusResult,
+    ObservedFinding,
+    analyze_observed_corpus,
+)
 from cachelint._ingest import (
     CanonicalRequest,
     IncomparableRequestsError,
@@ -42,11 +49,15 @@ __all__ = [
     "CorpusLimits",
     "CorpusPattern",
     "CorpusResult",
+    "CorpusUsageGroup",
+    "CorpusUsageTrace",
     "ContextDifference",
     "Divergence",
     "Finding",
     "IncomparableRequestsError",
     "InvalidRequestError",
+    "ObservedCorpusResult",
+    "ObservedFinding",
     "Provider",
     "PrefixEstimate",
     "Segment",
@@ -58,6 +69,7 @@ __all__ = [
     "UsageTrace",
     "analyze_usage",
     "analyze_corpus",
+    "analyze_observed_corpus",
     "canonicalize_request",
     "compare_requests",
 ]
