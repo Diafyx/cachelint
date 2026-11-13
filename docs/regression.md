@@ -115,3 +115,7 @@ result = evaluate_baseline(
 )
 print(result["status"], result["summary"]["error_count"])
 ```
+
+For a CI job, add `--summary-output regression.md` to write a bounded Markdown
+summary beside the JSON report. See the [CI example](ci-regression.md) for
+failure handling, artifact selection, and private-workspace guidance.

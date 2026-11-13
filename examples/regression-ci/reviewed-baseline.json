@@ -1,0 +1,58 @@
+{
+  "baseline_type": "cachelint.baseline",
+  "cohorts": [
+    {
+      "common_prefix_segments": 3,
+      "context_changed_count": 0,
+      "coverage_limited_count": 0,
+      "diverged_count": 0,
+      "file_count": 1,
+      "finding_codes": [
+        "prompt_identical"
+      ],
+      "identical_count": 1,
+      "index": 1,
+      "paired_count": 1,
+      "prefix_estimate": {
+        "method": "heuristic",
+        "tokens": 20
+      },
+      "prompt_status": "identical",
+      "provider": "anthropic",
+      "request_count": 2,
+      "usage": null
+    },
+    {
+      "common_prefix_segments": 2,
+      "context_changed_count": 0,
+      "coverage_limited_count": 0,
+      "diverged_count": 0,
+      "file_count": 1,
+      "finding_codes": [
+        "prompt_identical"
+      ],
+      "identical_count": 1,
+      "index": 2,
+      "paired_count": 1,
+      "prefix_estimate": {
+        "method": "heuristic",
+        "tokens": 27
+      },
+      "prompt_status": "identical",
+      "provider": "openai",
+      "request_count": 2,
+      "usage": null
+    }
+  ],
+  "observed_findings": [],
+  "patterns": [],
+  "schema_version": 1,
+  "source_report_schema_version": 1,
+  "summary": {
+    "cohort_count": 2,
+    "file_count": 1,
+    "observed_finding_count": 0,
+    "pattern_count": 0,
+    "request_count": 4
+  }
+}

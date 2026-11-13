@@ -332,3 +332,36 @@ def render_regression_text(result: dict[str, Any]) -> str:
             f"{item['code']}: {item['explanation']}"
         )
     return "\n".join(lines) + "\n"
+
+
+def render_regression_markdown(result: dict[str, Any]) -> str:
+    """Render a bounded, content-free CI summary from a regression result."""
+    summary = result["summary"]
+    lines = [
+        "## cachelint regression report v1",
+        "",
+        f"**Policy status:** {result['status']}",
+        "",
+        f"Matched cohorts: {summary['matched_cohort_count']} of "
+        f"{summary['baseline_cohort_count']} baseline and "
+        f"{summary['current_cohort_count']} current cohorts.",
+        f"Selected measurements: {summary['measurement_count']}; "
+        f"warnings: {summary['warning_count']}; errors: {summary['error_count']}.",
+    ]
+    findings = result["findings"]
+    if findings:
+        lines.extend(["", "Findings:"])
+        for item in findings[:10]:
+            lines.append(
+                f"- **{item['severity']}** cohort {item['cohort_index']} "
+                f"({item['provider']}): `{item['code']}`"
+                + (f" on `{item['metric']}`" if item["metric"] is not None else "")
+                + "."
+            )
+        if len(findings) > 10:
+            lines.append(
+                f"- {len(findings) - 10} additional findings; inspect the JSON report."
+            )
+    if summary["measurement_count"] == 0:
+        lines.extend(["", "No metric gates were evaluated."])
+    return "\n".join(lines) + "\n"

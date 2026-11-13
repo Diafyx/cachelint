@@ -1,0 +1,56 @@
+name: Regression gate example
+
+on:
+  workflow_dispatch:
+    inputs:
+      request_jsonl:
+        description: Workspace JSONL path; the default is a synthetic fixture
+        required: true
+        default: examples/regression-ci/current-requests.jsonl
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Install cachelint
+        run: python -m pip install .
+      - name: Analyze and check regression policy
+        shell: bash
+        env:
+          REQUEST_JSONL: ${{ inputs.request_jsonl }}
+        run: |
+          safe_dir="$RUNNER_TEMP/cachelint-safe-reports"
+          mkdir -p "$safe_dir"
+          status=0
+          cachelint corpus "$REQUEST_JSONL" --format json --output "$safe_dir/current-report.json" || status=$?
+          if [ "$status" -eq 0 ]; then
+            cachelint baseline check examples/regression-ci/reviewed-baseline.json "$safe_dir/current-report.json" \
+              --policy examples/regression-ci/policy.json --format json \
+              --output "$safe_dir/regression.json" --summary-output "$safe_dir/regression.md" || status=$?
+          fi
+          if [ ! -f "$safe_dir/regression.md" ]; then
+            printf '## cachelint regression check\n\nThe gate did not produce a summary; the check did not pass. Exit status: %s.\n' "$status" > "$safe_dir/regression.md"
+          fi
+          cat "$safe_dir/regression.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+      - name: Upload safe regression outputs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: regression-safe-reports
+          path: |
+            ${{ runner.temp }}/cachelint-safe-reports/regression.json
+            ${{ runner.temp }}/cachelint-safe-reports/regression.md
+          if-no-files-found: warn
+          retention-days: 1

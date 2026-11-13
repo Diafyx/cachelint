@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "policy_type": "cachelint.regression-policy",
+  "cohort_matching": "index_and_provider",
+  "on_missing_cohort": "error",
+  "on_new_cohort": "error",
+  "on_incomparable_cohort": "error",
+  "on_missing_metric": "error",
+  "rules": [
+    {
+      "metric": "diverged_count",
+      "direction": "increase",
+      "tolerance": 0,
+      "severity": "error",
+      "cohort": null
+    },
+    {
+      "metric": "request_count",
+      "direction": "decrease",
+      "tolerance": 0,
+      "severity": "error",
+      "cohort": null
+    }
+  ]
+}

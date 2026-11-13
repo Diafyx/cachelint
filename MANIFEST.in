@@ -1,1 +1,2 @@
 recursive-include docs *.md
+recursive-include examples/regression-ci *.json *.jsonl
