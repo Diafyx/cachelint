@@ -31,6 +31,12 @@ from cachelint.baseline import (
     render_baseline_json,
     render_baseline_text,
 )
+from cachelint.regression import (
+    evaluate_baseline,
+    load_policy,
+    render_regression_json,
+    render_regression_text,
+)
 from cachelint.report import (
     render_corpus_json,
     render_corpus_text,
@@ -138,6 +144,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     inspect.add_argument("path", help="version 1 baseline JSON")
     inspect.add_argument("--format", choices=("text", "json"), default="text")
+    check = baseline_commands.add_parser(
+        "check", help="evaluate a current corpus report against a baseline"
+    )
+    check.add_argument("baseline", help="reviewed baseline JSON")
+    check.add_argument("current", help="current corpus report v1 or v2 JSON")
+    check.add_argument("--policy", metavar="PATH", help="opt-in regression policy JSON")
+    check.add_argument("--format", choices=("text", "json"), default="text")
+    check.add_argument("--output", metavar="PATH")
     return parser
 
 
@@ -233,7 +247,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     [args.report],
                     render_baseline_json(baseline),
                 )
-            else:
+            elif args.baseline_command == "inspect":
                 baseline = load_baseline(args.path)
                 rendered = (
                     render_baseline_json(baseline)
@@ -241,6 +255,32 @@ def main(argv: Sequence[str] | None = None) -> int:
                     else render_baseline_text(baseline)
                 )
                 print(rendered, end="")
+            else:
+                baseline = load_baseline(args.baseline)
+                policy = load_policy(args.policy) if args.policy is not None else None
+                regression_result = evaluate_baseline(
+                    baseline,
+                    load_corpus_report(args.current),
+                    policy,
+                )
+                rendered = (
+                    render_regression_json(regression_result)
+                    if args.format == "json"
+                    else render_regression_text(regression_result)
+                )
+                if args.output is None:
+                    print(rendered, end="")
+                else:
+                    _write_report(
+                        args.output,
+                        [
+                            args.baseline,
+                            args.current,
+                            *([] if args.policy is None else [args.policy]),
+                        ],
+                        rendered,
+                    )
+                return 3 if regression_result["status"] == "fail" else 0
             return 0
         provider = cast(
             Provider | None, None if args.provider == "auto" else args.provider

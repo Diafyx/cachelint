@@ -7,9 +7,16 @@ import tempfile
 from pathlib import Path
 from typing import cast
 
-from cachelint import CorpusUsageTrace, Provider, analyze_observed_corpus
+from cachelint import (
+    CorpusUsageTrace,
+    Provider,
+    analyze_observed_corpus,
+    default_policy,
+    evaluate_baseline,
+)
 from cachelint.baseline import baseline_from_report, render_baseline_json
 from cachelint.cli import main
+from cachelint.regression import render_regression_json
 from cachelint.report import corpus_report
 
 CANARY = "PRIVATE_RELEASE_SMOKE_CANARY"
@@ -66,6 +73,20 @@ def main_smoke() -> None:
         assert baseline["source_report_schema_version"] == 2
         assert baseline["summary"]["observed_finding_count"] > 0
         assert CANARY not in render_baseline_json(baseline)
+        policy = default_policy()
+        policy["rules"].append(
+            {
+                "metric": "cache_read_positive_count",
+                "direction": "increase",
+                "tolerance": 0,
+                "severity": "error",
+                "cohort": None,
+            }
+        )
+        checked = evaluate_baseline(baseline, document, policy)
+        assert checked["status"] == "pass"
+        assert checked["summary"]["measurement_count"] == 2
+        assert CANARY not in render_regression_json(checked)
         summary = cast(dict[str, object], document["summary"])
         assert summary["traced_request_count"] == 5
         findings = cast(list[dict[str, object]], document["observed_findings"])
