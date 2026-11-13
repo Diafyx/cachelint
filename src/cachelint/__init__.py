@@ -41,6 +41,7 @@ from cachelint._observed import (
 )
 from cachelint._version import __version__
 from cachelint.baseline import baseline_from_report, load_baseline
+from cachelint.regression import default_policy, evaluate_baseline, load_policy
 
 __all__ = [
     "__version__",
@@ -75,4 +76,7 @@ __all__ = [
     "compare_requests",
     "baseline_from_report",
     "load_baseline",
+    "default_policy",
+    "evaluate_baseline",
+    "load_policy",
 ]

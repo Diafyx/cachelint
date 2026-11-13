@@ -47,6 +47,9 @@ and an explicit migration. `baseline inspect` validates the baseline before
 printing either text or canonical JSON. Python callers can use
 `baseline_from_report`, `load_baseline`, and `render_baseline_json`.
 
+Use the [regression guide](regression.md) to compare a reviewed baseline with
+a current corpus report under explicit, bounded policy rules.
+
 Baseline JSON uses sorted keys, ascending cohort indexes and ranks, ASCII
 escapes, LF line endings, and one final newline. The same validated report
 produces identical bytes across supported Python versions and platforms.

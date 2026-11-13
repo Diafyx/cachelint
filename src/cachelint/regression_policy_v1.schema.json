@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/regression_policy_v1.schema.json",
+  "title": "cachelint regression policy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "policy_type", "cohort_matching", "on_missing_cohort", "on_new_cohort", "on_incomparable_cohort", "on_missing_metric", "rules"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "policy_type": {"const": "cachelint.regression-policy"},
+    "cohort_matching": {"const": "index_and_provider"},
+    "on_missing_cohort": {"$ref": "#/$defs/action"},
+    "on_new_cohort": {"$ref": "#/$defs/action"},
+    "on_incomparable_cohort": {"$ref": "#/$defs/action"},
+    "on_missing_metric": {"$ref": "#/$defs/action"},
+    "rules": {"type": "array", "items": {"$ref": "#/$defs/rule"}}
+  },
+  "$defs": {
+    "nonnegative": {"type": "integer", "minimum": 0},
+    "positive": {"type": "integer", "minimum": 1},
+    "provider": {"enum": ["anthropic", "openai"]},
+    "action": {"enum": ["ignore", "warning", "error"]},
+    "metric": {
+      "enum": [
+        "request_count",
+        "paired_count",
+        "identical_count",
+        "diverged_count",
+        "context_changed_count",
+        "coverage_limited_count",
+        "prefix_estimate_tokens",
+        "cache_read_positive_count",
+        "cache_read_zero_count",
+        "cache_read_unknown_count",
+        "known_cache_read_tokens",
+        "cache_write_positive_count",
+        "cache_write_zero_count",
+        "cache_write_unknown_count",
+        "known_cache_write_tokens"
+      ]
+    },
+    "selector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "provider"],
+      "properties": {
+        "index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"}
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "direction", "tolerance", "severity", "cohort"],
+      "properties": {
+        "metric": {"$ref": "#/$defs/metric"},
+        "direction": {"enum": ["increase", "decrease"]},
+        "tolerance": {"$ref": "#/$defs/nonnegative"},
+        "severity": {"enum": ["warning", "error"]},
+        "cohort": {"oneOf": [{"$ref": "#/$defs/selector"}, {"type": "null"}]}
+      }
+    }
+  }
+}

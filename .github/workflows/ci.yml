@@ -123,6 +123,11 @@ jobs:
           cmp baseline-wheel.json baseline-sdist.json
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" baseline inspect baseline-wheel.json --format json > baseline-inspected.json
           cmp baseline-wheel.json baseline-inspected.json
+          printf '%s\n' '{"schema_version":1,"policy_type":"cachelint.regression-policy","cohort_matching":"index_and_provider","on_missing_cohort":"error","on_new_cohort":"error","on_incomparable_cohort":"error","on_missing_metric":"error","rules":[{"metric":"diverged_count","direction":"increase","tolerance":0,"severity":"error","cohort":null}]}' > policy.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" baseline check baseline-wheel.json corpus-wheel.json --policy policy.json --format json --output regression-wheel.json
+          "$RUNNER_TEMP/cachelint-sdist-smoke/bin/cachelint" baseline check baseline-sdist.json corpus-sdist.json --policy policy.json --format json --output regression-sdist.json
+          cmp regression-wheel.json regression-sdist.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from pathlib import Path; from importlib.resources import files; result=json.loads(Path('regression-wheel.json').read_text()); assert result['status']=='pass' and result['summary']['measurement_count']==1; assert json.loads(files('cachelint').joinpath('regression_policy_v1.schema.json').read_text())['properties']['schema_version']=={'const':1}"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" smoke_observed_release.py
           "$RUNNER_TEMP/cachelint-sdist-smoke/bin/python" smoke_observed_release.py
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from pathlib import Path; from importlib.resources import files; a=json.loads(Path('corpus-wheel.json').read_text()); b=json.loads(Path('corpus-sdist.json').read_text()); assert a==b and a['schema_version']==1 and a['patterns'][0]['path']=='system'; assert json.loads(files('cachelint').joinpath('corpus_report_v1.schema.json').read_text())['properties']['schema_version']=={'const':1}"

@@ -92,6 +92,8 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/report.py",
             "cachelint/baseline.py",
             "cachelint/baseline_v1.schema.json",
+            "cachelint/regression.py",
+            "cachelint/regression_policy_v1.schema.json",
             "cachelint/py.typed",
             "cachelint/cache_rules.json",
             "cachelint/corpus_report_v1.schema.json",
@@ -112,6 +114,13 @@ def inspect(dist_dir: Path) -> None:
         baseline_schema = json.loads(wheel.read("cachelint/baseline_v1.schema.json"))
         if baseline_schema.get("properties", {}).get("schema_version") != {"const": 1}:
             raise ValueError("Wheel baseline schema is invalid")
+        regression_schema = json.loads(
+            wheel.read("cachelint/regression_policy_v1.schema.json")
+        )
+        if regression_schema.get("properties", {}).get("schema_version") != {
+            "const": 1
+        }:
+            raise ValueError("Wheel regression policy schema is invalid")
         usage_schema = json.loads(wheel.read("cachelint/usage_sidecar_v1.schema.json"))
         if usage_schema.get("properties", {}).get("schema_version") != {"const": 1}:
             raise ValueError("Wheel usage sidecar schema is invalid")
@@ -145,6 +154,7 @@ def inspect(dist_dir: Path) -> None:
             "docs/usage.md",
             "docs/corpus.md",
             "docs/baselines.md",
+            "docs/regression.md",
             "docs/design/0004-cache-usage-sidecar-contract.md",
             "docs/design/0005-observed-usage-join-contract.md",
             "docs/design/0006-observed-corpus-findings.md",
@@ -166,6 +176,8 @@ def inspect(dist_dir: Path) -> None:
             "src/cachelint/report.py",
             "src/cachelint/baseline.py",
             "src/cachelint/baseline_v1.schema.json",
+            "src/cachelint/regression.py",
+            "src/cachelint/regression_policy_v1.schema.json",
             "src/cachelint/py.typed",
             "src/cachelint/cache_rules.json",
             "src/cachelint/corpus_report_v1.schema.json",
@@ -196,6 +208,13 @@ def inspect(dist_dir: Path) -> None:
             "properties", {}
         ).get("schema_version") != {"const": 1}:
             raise ValueError("Sdist baseline schema is invalid")
+        regression_schema_file = sdist.extractfile(
+            f"cachelint-{version}/src/cachelint/regression_policy_v1.schema.json"
+        )
+        if regression_schema_file is None or json.load(regression_schema_file).get(
+            "properties", {}
+        ).get("schema_version") != {"const": 1}:
+            raise ValueError("Sdist regression policy schema is invalid")
         usage_schema_file = sdist.extractfile(
             f"cachelint-{version}/src/cachelint/usage_sidecar_v1.schema.json"
         )

@@ -17,6 +17,8 @@ report contract. Opt-in usage sidecars can be joined to a corpus for ranked,
 evidence-labeled findings in report schema v2. Request-only output remains v1.
 Reviewable [analysis baselines](docs/baselines.md) project either report version
 to deterministic, content-free JSON for later regression checks.
+Explicit [regression policies](docs/regression.md) can check selected changes
+without treating a modeled prefix as a verified cache hit.
 
 The `0.2.0a2` series adds opt-in provider cache-usage counters in a
 separate private SDK-recording sidecar and joins them with modeled corpus
