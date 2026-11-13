@@ -7,7 +7,7 @@ through the Python API and CLI, with advisory stable-prefix length estimates.
 Opt-in SDK recording is available through the Python API for two pinned SDK
 versions under the
 [private recording contract](docs/design/0003-private-sdk-recording-contract.md).
-See the [0.2.0a2 release notes](docs/releases/0.2.0a2.md).
+See the [0.2.0a3 release notes](docs/releases/0.2.0a3.md).
 
 The 0.2 alpha series adds bounded multi-file corpus analysis through
 `analyze_corpus` and `cachelint corpus`. It groups mixed recordings by provider
@@ -152,7 +152,7 @@ provider-observed cache read counts with missing evidence kept explicit.
 The [usage guide](docs/usage.md) documents the exact join, supported fields,
 limits, and privacy contract.
 
-The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` added opt-in request recording through the two pinned SDKs. `0.2.0a1` added bounded corpus analysis and versioned reports. `0.2.0a2` adds opt-in observed usage summaries and evidence-labeled findings. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
+The `0.1.0a1` release introduced offline analysis for Anthropic Messages and OpenAI Chat Completions request bodies. `0.1.0a2` added advisory length guidance and an optional OpenAI tokenizer. `0.1.0a3` added opt-in request recording through the two pinned SDKs. `0.2.0a1` added bounded corpus analysis and versioned reports. `0.2.0a2` added opt-in observed usage summaries and evidence-labeled findings. `0.2.0a3` adds reviewable baselines, explicit regression policies, and CI report exports. The accepted canonicalization contract and privacy handling guide the commands. A matching text prefix is evidence for diagnosis, not a guarantee of a provider cache hit.
 
 The [request comparison and privacy contract](docs/design/0001-request-comparison-contract.md) defines the first release's input and diagnostic behavior.
 
