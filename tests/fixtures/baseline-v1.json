@@ -1,0 +1,87 @@
+{
+  "baseline_type": "cachelint.baseline",
+  "cohorts": [
+    {
+      "common_prefix_segments": 1,
+      "context_changed_count": 0,
+      "coverage_limited_count": 0,
+      "diverged_count": 1,
+      "file_count": 2,
+      "finding_codes": [
+        "prompt_text_changed"
+      ],
+      "identical_count": 0,
+      "index": 1,
+      "paired_count": 1,
+      "prefix_estimate": {
+        "method": "heuristic",
+        "tokens": 4
+      },
+      "prompt_status": "diverged",
+      "provider": "anthropic",
+      "request_count": 2,
+      "usage": null
+    },
+    {
+      "common_prefix_segments": 0,
+      "context_changed_count": 0,
+      "coverage_limited_count": 0,
+      "diverged_count": 1,
+      "file_count": 2,
+      "finding_codes": [
+        "prompt_text_changed"
+      ],
+      "identical_count": 0,
+      "index": 2,
+      "paired_count": 1,
+      "prefix_estimate": {
+        "method": "heuristic",
+        "tokens": 4
+      },
+      "prompt_status": "diverged",
+      "provider": "openai",
+      "request_count": 2,
+      "usage": null
+    }
+  ],
+  "observed_findings": [],
+  "patterns": [
+    {
+      "category": "messages",
+      "cohort_index": 2,
+      "common_prefix_segments": 0,
+      "count": 1,
+      "kind": "text_changed",
+      "path": "messages[0].content",
+      "prefix_estimate": {
+        "method": "heuristic",
+        "tokens": 4
+      },
+      "provider": "openai",
+      "rank": 1
+    },
+    {
+      "category": "system",
+      "cohort_index": 1,
+      "common_prefix_segments": 1,
+      "count": 1,
+      "kind": "text_changed",
+      "path": "system",
+      "prefix_estimate": {
+        "method": "heuristic",
+        "tokens": 4
+      },
+      "provider": "anthropic",
+      "rank": 2
+    }
+  ],
+  "schema_version": 1,
+  "source_report_schema_version": 1,
+  "summary": {
+    "cohort_count": 2,
+    "file_count": 2,
+    "observed_finding_count": 0,
+    "pattern_count": 2,
+    "request_count": 4
+  }
+}

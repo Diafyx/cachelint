@@ -15,6 +15,8 @@ and exact model, ranks recurring prefix differences, and exports content-safe
 reports. See the [corpus guide](docs/corpus.md) for limits, ordering, and the
 report contract. Opt-in usage sidecars can be joined to a corpus for ranked,
 evidence-labeled findings in report schema v2. Request-only output remains v1.
+Reviewable [analysis baselines](docs/baselines.md) project either report version
+to deterministic, content-free JSON for later regression checks.
 
 The `0.2.0a2` series adds opt-in provider cache-usage counters in a
 separate private SDK-recording sidecar and joins them with modeled corpus
@@ -137,6 +139,8 @@ exact model, then ranks recurring modeled prefix changes by observed count.
 The [corpus guide](docs/corpus.md) documents its deterministic pairing,
 privacy-safe results, limits, ranking rules, `cachelint corpus` command, and
 versioned JSON report contract.
+The [baseline guide](docs/baselines.md) documents `cachelint baseline create`
+and `inspect`, their versioned schema, privacy limits, and review workflow.
 
 For recordings made with `capture_usage=True`, `analyze_usage` and
 `cachelint usage` join each request log to its private sidecar and report
