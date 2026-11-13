@@ -22,6 +22,7 @@ from cachelint.regression import (
     evaluate_baseline,
     load_policy,
     render_regression_json,
+    render_regression_markdown,
     render_regression_text,
     validate_policy,
 )
@@ -426,3 +427,65 @@ def test_output_guard_and_fixed_explanation(
         == 0
     )
     assert "Regression check: pass" in capsys.readouterr().out
+
+
+def test_markdown_output_and_partial_failure(tmp_path: Path) -> None:
+    before = _report(tmp_path / "before.jsonl", "anthropic", "A", "A")
+    after = _report(tmp_path / "after.jsonl", "anthropic", "A", "B")
+    baseline = tmp_path / "baseline.json"
+    current = tmp_path / "current.json"
+    policy = tmp_path / "policy.json"
+    report = tmp_path / "regression.json"
+    summary = tmp_path / "regression.md"
+    baseline.write_text(render_baseline_json(baseline_from_report(before)))
+    current.write_text(json.dumps(after), encoding="utf-8")
+    policy.write_text(json.dumps(_policy(_rule())), encoding="utf-8")
+    command = [
+        "baseline",
+        "check",
+        str(baseline),
+        str(current),
+        "--policy",
+        str(policy),
+        "--format",
+        "json",
+        "--output",
+        str(report),
+        "--summary-output",
+        str(summary),
+    ]
+    assert main(command) == 3
+    assert json.loads(report.read_text(encoding="utf-8"))["status"] == "fail"
+    markdown = summary.read_text(encoding="utf-8")
+    assert "**Policy status:** fail" in markdown
+    assert "`regression_exceeds_tolerance` on `diverged_count`" in markdown
+    assert CANARY not in markdown
+    assert "SYNTHETIC" not in markdown
+
+    report.unlink()
+    assert main([*command[:-1], str(tmp_path / "bad.jsonl")]) == 2
+    assert json.loads(report.read_text(encoding="utf-8"))["status"] == "fail"
+    assert not (tmp_path / "bad.jsonl").exists()
+    report.write_text("keep", encoding="utf-8")
+    assert main([*command[:-1], str(report)]) == 2
+    assert report.read_text(encoding="utf-8") == "keep"
+
+
+def test_markdown_no_gate_and_bounded_findings(tmp_path: Path) -> None:
+    report = _report(tmp_path / "one.jsonl", "anthropic", "A", "A")
+    result = evaluate_baseline(baseline_from_report(report), report)
+    assert "No metric gates were evaluated." in render_regression_markdown(result)
+    checked = evaluate_baseline(
+        baseline_from_report(report),
+        report,
+        _policy(_rule("cache_read_zero_count"), on_missing_metric="warning"),
+    )
+    assert "`missing_metric` on `cache_read_zero_count`" in render_regression_markdown(
+        checked
+    )
+    checked["findings"] = checked["findings"] * 11
+    markdown = render_regression_markdown(checked)
+    assert markdown.count("`missing_metric`") == 10
+    assert "1 additional findings" in markdown
+    checked["findings"][0]["metric"] = None
+    assert "`missing_metric`." in render_regression_markdown(checked)

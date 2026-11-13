@@ -1,0 +1,4 @@
+{"model":"claude-sonnet-4-6","system":"SYNTHETIC_EXAMPLE_INSTRUCTION","messages":[{"role":"user","content":"SYNTHETIC_EXAMPLE_A"}]}
+{"model":"claude-sonnet-4-6","system":"SYNTHETIC_EXAMPLE_INSTRUCTION","messages":[{"role":"user","content":"SYNTHETIC_EXAMPLE_A"}]}
+{"model":"gpt-5.6-sol","messages":[{"role":"system","content":"SYNTHETIC_EXAMPLE_INSTRUCTION"},{"role":"user","content":"SYNTHETIC_EXAMPLE_A"}],"prompt_cache_key":"SYNTHETIC_KEY"}
+{"model":"gpt-5.6-sol","messages":[{"role":"system","content":"SYNTHETIC_EXAMPLE_INSTRUCTION"},{"role":"user","content":"SYNTHETIC_EXAMPLE_A"}],"prompt_cache_key":"SYNTHETIC_KEY"}

@@ -35,6 +35,7 @@ from cachelint.regression import (
     evaluate_baseline,
     load_policy,
     render_regression_json,
+    render_regression_markdown,
     render_regression_text,
 )
 from cachelint.report import (
@@ -152,6 +153,9 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--policy", metavar="PATH", help="opt-in regression policy JSON")
     check.add_argument("--format", choices=("text", "json"), default="text")
     check.add_argument("--output", metavar="PATH")
+    check.add_argument(
+        "--summary-output", metavar="PATH", help="write a safe Markdown CI summary"
+    )
     return parser
 
 
@@ -256,6 +260,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 print(rendered, end="")
             else:
+                if (
+                    args.output is not None
+                    and args.summary_output is not None
+                    and Path(args.output).resolve()
+                    == Path(args.summary_output).resolve()
+                ):
+                    raise InvalidRequestError("report and summary outputs must differ")
                 baseline = load_baseline(args.baseline)
                 policy = load_policy(args.policy) if args.policy is not None else None
                 regression_result = evaluate_baseline(
@@ -279,6 +290,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                             *([] if args.policy is None else [args.policy]),
                         ],
                         rendered,
+                    )
+                if args.summary_output is not None:
+                    _write_report(
+                        args.summary_output,
+                        [
+                            args.baseline,
+                            args.current,
+                            *([] if args.policy is None else [args.policy]),
+                            *([] if args.output is None else [args.output]),
+                        ],
+                        render_regression_markdown(regression_result),
                     )
                 return 3 if regression_result["status"] == "fail" else 0
             return 0

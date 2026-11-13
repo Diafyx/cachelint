@@ -19,6 +19,8 @@ Reviewable [analysis baselines](docs/baselines.md) project either report version
 to deterministic, content-free JSON for later regression checks.
 Explicit [regression policies](docs/regression.md) can check selected changes
 without treating a modeled prefix as a verified cache hit.
+The [CI regression example](docs/ci-regression.md) exports safe JSON and
+Markdown reports from a synthetic two-provider workload.
 
 The `0.2.0a2` series adds opt-in provider cache-usage counters in a
 separate private SDK-recording sidecar and joins them with modeled corpus
