@@ -40,6 +40,7 @@ from cachelint._observed import (
     analyze_usage,
 )
 from cachelint._version import __version__
+from cachelint.baseline import baseline_from_report, load_baseline
 
 __all__ = [
     "__version__",
@@ -72,4 +73,6 @@ __all__ = [
     "analyze_observed_corpus",
     "canonicalize_request",
     "compare_requests",
+    "baseline_from_report",
+    "load_baseline",
 ]

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/baseline_v1.schema.json",
+  "title": "cachelint analysis baseline v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "baseline_type", "source_report_schema_version", "summary", "cohorts", "patterns", "observed_findings"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "baseline_type": {"const": "cachelint.baseline"},
+    "source_report_schema_version": {"enum": [1, 2]},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_count", "request_count", "cohort_count", "pattern_count", "observed_finding_count"],
+      "properties": {
+        "file_count": {"$ref": "#/$defs/nonnegative"},
+        "request_count": {"$ref": "#/$defs/nonnegative"},
+        "cohort_count": {"$ref": "#/$defs/nonnegative"},
+        "pattern_count": {"$ref": "#/$defs/nonnegative"},
+        "observed_finding_count": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "cohorts": {"type": "array", "items": {"$ref": "#/$defs/cohort"}},
+    "patterns": {"type": "array", "items": {"$ref": "#/$defs/pattern"}},
+    "observed_findings": {"type": "array", "items": {"$ref": "#/$defs/observed_finding"}}
+  },
+  "$defs": {
+    "nonnegative": {"type": "integer", "minimum": 0},
+    "positive": {"type": "integer", "minimum": 1},
+    "provider": {"enum": ["anthropic", "openai"]},
+    "safe_path": {
+      "type": "string",
+      "pattern": "^(?:tools|system|messages)(?:\\[[0-9]+\\])?(?:\\.(?:role|content|name|tool_call_id|tool_calls|type|text|cache_control|prompt_cache_breakpoint)(?:\\[[0-9]+\\])?)*$"
+    },
+    "kind": {"enum": ["text_changed", "value_changed", "type_changed", "object_changed", "inserted", "removed"]},
+    "finding_code": {"enum": ["prompt_identical", "prompt_text_changed", "prompt_structure_changed", "prompt_inserted", "prompt_removed", "context_changed", "coverage_limited", "insufficient_data"]},
+    "observed_code": {"enum": ["matching_prefix_no_read", "divergent_prefix_no_read", "read_below_modeled_minimum", "read_with_divergence", "context_changed_no_read", "short_modeled_prefix", "coverage_limited", "missing_observation"]},
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tokens", "method"],
+      "properties": {
+        "tokens": {"$ref": "#/$defs/nonnegative"},
+        "method": {"enum": ["heuristic", "tiktoken"]}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request_count", "traced_request_count", "cache_read_positive_count", "cache_read_zero_count", "cache_read_unknown_count", "known_cache_read_tokens", "cache_write_positive_count", "cache_write_zero_count", "cache_write_unknown_count", "known_cache_write_tokens", "status_counts"],
+      "properties": {
+        "request_count": {"$ref": "#/$defs/nonnegative"},
+        "traced_request_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_read_positive_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_read_zero_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_read_unknown_count": {"$ref": "#/$defs/nonnegative"},
+        "known_cache_read_tokens": {"$ref": "#/$defs/nonnegative"},
+        "cache_write_positive_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_write_zero_count": {"$ref": "#/$defs/nonnegative"},
+        "cache_write_unknown_count": {"$ref": "#/$defs/nonnegative"},
+        "known_cache_write_tokens": {"$ref": "#/$defs/nonnegative"},
+        "status_counts": {"$ref": "#/$defs/status_counts"}
+      }
+    },
+    "status_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reported", "absent", "invalid", "too_large", "streaming", "http_error", "incomplete", "unmatched", "missing_sidecar", "missing_trace"],
+      "properties": {
+        "reported": {"$ref": "#/$defs/nonnegative"},
+        "absent": {"$ref": "#/$defs/nonnegative"},
+        "invalid": {"$ref": "#/$defs/nonnegative"},
+        "too_large": {"$ref": "#/$defs/nonnegative"},
+        "streaming": {"$ref": "#/$defs/nonnegative"},
+        "http_error": {"$ref": "#/$defs/nonnegative"},
+        "incomplete": {"$ref": "#/$defs/nonnegative"},
+        "unmatched": {"$ref": "#/$defs/nonnegative"},
+        "missing_sidecar": {"$ref": "#/$defs/nonnegative"},
+        "missing_trace": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "cohort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "provider", "file_count", "request_count", "paired_count", "identical_count", "diverged_count", "context_changed_count", "coverage_limited_count", "prompt_status", "common_prefix_segments", "finding_codes", "prefix_estimate", "usage"],
+      "properties": {
+        "index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "file_count": {"$ref": "#/$defs/positive"},
+        "request_count": {"$ref": "#/$defs/positive"},
+        "paired_count": {"$ref": "#/$defs/nonnegative"},
+        "identical_count": {"$ref": "#/$defs/nonnegative"},
+        "diverged_count": {"$ref": "#/$defs/nonnegative"},
+        "context_changed_count": {"$ref": "#/$defs/nonnegative"},
+        "coverage_limited_count": {"$ref": "#/$defs/nonnegative"},
+        "prompt_status": {"enum": ["identical", "diverged", "insufficient_data"]},
+        "common_prefix_segments": {"$ref": "#/$defs/nonnegative"},
+        "finding_codes": {"type": "array", "items": {"$ref": "#/$defs/finding_code"}},
+        "prefix_estimate": {"oneOf": [{"$ref": "#/$defs/estimate"}, {"type": "null"}]},
+        "usage": {"oneOf": [{"$ref": "#/$defs/usage"}, {"type": "null"}]}
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rank", "cohort_index", "provider", "category", "path", "kind", "count", "common_prefix_segments", "prefix_estimate"],
+      "properties": {
+        "rank": {"$ref": "#/$defs/positive"},
+        "cohort_index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "category": {"enum": ["tools", "system", "messages"]},
+        "path": {"$ref": "#/$defs/safe_path"},
+        "kind": {"$ref": "#/$defs/kind"},
+        "count": {"$ref": "#/$defs/positive"},
+        "common_prefix_segments": {"$ref": "#/$defs/nonnegative"},
+        "prefix_estimate": {"$ref": "#/$defs/estimate"}
+      }
+    },
+    "observed_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rank", "cohort_index", "provider", "code", "count", "path", "evidence_quality"],
+      "properties": {
+        "rank": {"$ref": "#/$defs/positive"},
+        "cohort_index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "code": {"$ref": "#/$defs/observed_code"},
+        "count": {"$ref": "#/$defs/positive"},
+        "path": {"oneOf": [{"$ref": "#/$defs/safe_path"}, {"type": "null"}]},
+        "evidence_quality": {"enum": ["observed", "limited", "unknown"]}
+      }
+    }
+  }
+}

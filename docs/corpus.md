@@ -185,6 +185,10 @@ object keys are sorted, arrays retain deterministic cohort/rank order, and
 output ends with a newline. Incompatible report changes require a new schema
 version and filename.
 
+Use the [baseline guide](baselines.md) to project a validated v1 or v2 corpus
+report into a deterministic, reviewable summary. A baseline retains fixed
+finding codes and counts while omitting free-form observed finding text.
+
 Python callers can build the same document without the CLI:
 
 ```python

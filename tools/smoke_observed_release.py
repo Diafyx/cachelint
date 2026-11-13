@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import cast
 
 from cachelint import CorpusUsageTrace, Provider, analyze_observed_corpus
+from cachelint.baseline import baseline_from_report, render_baseline_json
 from cachelint.cli import main
 from cachelint.report import corpus_report
 
@@ -61,6 +62,10 @@ def main_smoke() -> None:
         result = analyze_observed_corpus(root, usage_traces=[anthropic, openai])
         document = corpus_report(result)
         assert document["schema_version"] == 2
+        baseline = baseline_from_report(document)
+        assert baseline["source_report_schema_version"] == 2
+        assert baseline["summary"]["observed_finding_count"] > 0
+        assert CANARY not in render_baseline_json(baseline)
         summary = cast(dict[str, object], document["summary"])
         assert summary["traced_request_count"] == 5
         findings = cast(list[dict[str, object]], document["observed_findings"])

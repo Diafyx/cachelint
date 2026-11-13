@@ -24,6 +24,13 @@ from cachelint import (
     compare_requests,
 )
 from cachelint._ingest import read_json, read_jsonl
+from cachelint.baseline import (
+    baseline_from_report,
+    load_baseline,
+    load_corpus_report,
+    render_baseline_json,
+    render_baseline_text,
+)
 from cachelint.report import (
     render_corpus_json,
     render_corpus_text,
@@ -119,6 +126,18 @@ def build_parser() -> argparse.ArgumentParser:
         ("max-rows", usage_defaults.max_rows),
     ):
         usage.add_argument(f"--{name}", type=int, default=default, metavar="N")
+    baseline = commands.add_parser(
+        "baseline", help="create or inspect a privacy-safe corpus baseline"
+    )
+    baseline_commands = baseline.add_subparsers(dest="baseline_command", required=True)
+    create = baseline_commands.add_parser("create", help="project a JSON corpus report")
+    create.add_argument("report", help="version 1 or 2 corpus report JSON")
+    create.add_argument("--output", required=True, metavar="PATH")
+    inspect = baseline_commands.add_parser(
+        "inspect", help="validate and show a baseline"
+    )
+    inspect.add_argument("path", help="version 1 baseline JSON")
+    inspect.add_argument("--format", choices=("text", "json"), default="text")
     return parser
 
 
@@ -205,8 +224,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command is None:
         return 0
-    provider = cast(Provider | None, None if args.provider == "auto" else args.provider)
     try:
+        if args.command == "baseline":
+            if args.baseline_command == "create":
+                baseline = baseline_from_report(load_corpus_report(args.report))
+                _write_report(
+                    args.output,
+                    [args.report],
+                    render_baseline_json(baseline),
+                )
+            else:
+                baseline = load_baseline(args.path)
+                rendered = (
+                    render_baseline_json(baseline)
+                    if args.format == "json"
+                    else render_baseline_text(baseline)
+                )
+                print(rendered, end="")
+            return 0
+        provider = cast(
+            Provider | None, None if args.provider == "auto" else args.provider
+        )
         if args.command == "usage":
             traces = [UsageTrace(requests, sidecar) for requests, sidecar in args.trace]
             usage_result = analyze_usage(
