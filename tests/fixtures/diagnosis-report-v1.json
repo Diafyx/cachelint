@@ -42,7 +42,7 @@
   "report_type": "cachelint.diagnosis",
   "schema_version": 1,
   "summary": {
-    "byte_count": 564,
+    "byte_count": 560,
     "cohort_count": 2,
     "file_count": 2,
     "finding_count": 2,

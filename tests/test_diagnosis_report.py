@@ -29,6 +29,7 @@ def _write(path: Path, *bodies: dict[str, object]) -> Path:
     path.write_text(
         "".join(json.dumps(body, sort_keys=True) + "\n" for body in bodies),
         encoding="utf-8",
+        newline="\n",
     )
     return path
 
