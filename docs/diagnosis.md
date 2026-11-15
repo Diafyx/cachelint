@@ -1,10 +1,84 @@
 # Diagnose recurring prefix drift
 
-The development Python API classifies supported differences within one
-Anthropic Messages or OpenAI Chat Completions cohort. It runs offline on
-canonicalized request bodies. Issue #63 will add the command-line interface
-and a versioned diagnosis report; the current published 0.2.0a3 release does
-not contain this API.
+The `diagnose` command classifies supported differences within Anthropic
+Messages and OpenAI Chat Completions cohorts. It runs offline on private JSONL
+request bodies. The command and report are planned for 0.3.0a1; the published
+0.2.0a3 release does not contain them.
+
+~~~console
+cachelint diagnose examples/diagnosis/anthropic.jsonl examples/diagnosis/openai.jsonl
+cachelint diagnose examples/diagnosis/anthropic.jsonl examples/diagnosis/openai.jsonl --format json --output diagnosis-report.json
+~~~
+
+Each file can contain one or more requests. A directory input is searched
+recursively for `.jsonl` files, excluding `.usage.jsonl` sidecars. Files are
+read in normalized absolute-path order and physical line order. Requests are
+grouped by provider and exact model; the model name is omitted from results.
+Use `--provider anthropic` or `--provider openai` when a body is ambiguous.
+An empty file yields a report with zero cohorts; an invalid JSONL line fails
+the whole command. The Python entry point uses the same ordering and report:
+
+~~~python
+from cachelint import analyze_diagnosis, render_diagnosis_json
+
+result = analyze_diagnosis(
+    ["examples/diagnosis/anthropic.jsonl", "examples/diagnosis/openai.jsonl"]
+)
+print(render_diagnosis_json(result), end="")
+~~~
+
+For the same inputs and options, a JSON `--output` file is byte-for-byte the
+UTF-8 encoding of `render_diagnosis_json(result)`. A text `--output` file
+likewise matches `render_diagnosis_text(result)`. Both end with one newline;
+terminal stdout may apply its host's newline handling. The
+[bundled diagnosis schema v1](../src/cachelint/diagnosis_report_v1.schema.json)
+uses `schema_version: 1` and `report_type: cachelint.diagnosis`. Findings
+include rank, cohort index, provider, fixed code, evidence level, safe path,
+count, fixed explanation, and fixed action. The schema is separate from corpus
+report v1/v2 and baseline v1; those meanings and readers remain unchanged.
+
+The default corpus limits are 128 files, 16 MiB of input, 20,000 requests, and
+4,096 discovery entries. Each cohort is also limited to 200,000 canonical
+segments, 2 million nodes, 16,777,216 text characters, and 100 million
+approximate comparison work units.
+The command exposes matching `--max-*` flags; Python callers can pass
+`CorpusLimits` and `DiagnosisLimits`. The command exits 0 on a valid report,
+2 for invalid input or output, and 1 for an unexpected internal failure.
+`--output` writes a temporary file in the destination directory and atomically
+replaces the report only after successful analysis. It refuses symlinks,
+`.jsonl` destinations, and direct input paths.
+Diagnose errors report fixed reasons and physical line numbers without printing
+source paths or request values; keep the private source files protected.
+
+## From private recording to a safe report
+
+1. Create a private recording directory, then use the pinned SDK hooks in the
+   [recording guide](recording.md) to collect Anthropic Messages and OpenAI
+   Chat Completions requests into separate JSONL files. Close each recorder
+   before analysis. The two files and optional usage sidecars remain private.
+2. Run `cachelint diagnose /private/anthropic-requests.jsonl /private/openai-requests.jsonl --format json --output /private/diagnosis-report.json`.
+3. Review the report's safe paths and counts, then inspect source requests
+   privately before changing prompt construction. The report carries no
+   source paths, model names, request values, excerpts, or content hashes.
+
+For an offline package smoke test, build both distributions, install the wheel
+in one clean environment and the sdist in another, and run the same example
+against each installation:
+
+~~~console
+python -m build --wheel --sdist
+python -m pip install path/to/cachelint-<version>-py3-none-any.whl
+python -I examples/diagnosis/smoke.py
+python -m pip install path/to/cachelint-<version>.tar.gz
+python -I examples/diagnosis/smoke.py
+~~~
+
+Use separate environments for the wheel and sdist checks. The smoke program
+uses only bundled synthetic requests and makes no provider API calls.
+
+## Python cohort classifier
+
+`diagnose_requests` classifies one already-canonicalized provider/model cohort:
 
 ~~~python
 from cachelint import canonicalize_request, diagnose_requests
@@ -31,7 +105,7 @@ assert [(f.code, f.evidence, f.path) for f in result.findings] == [
 ]
 ~~~
 
-All requests in one call must use the same provider and exact model. The first
+All requests in this call must use the same provider and exact model. The first
 request is the fixed reference; every other request is compared with it.
 Findings count how many of those later requests match each fixed code and
 safe path. They are ordered by count, then code and path. A single request

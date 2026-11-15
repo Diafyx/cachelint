@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/diagnosis_report_v1.schema.json",
+  "title": "cachelint diagnosis report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_type", "summary", "groups", "findings"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "report_type": {"const": "cachelint.diagnosis"},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file_count", "byte_count", "request_count", "cohort_count", "finding_count", "provider_reported_cache_status"],
+      "properties": {
+        "file_count": {"$ref": "#/$defs/nonnegative"},
+        "byte_count": {"$ref": "#/$defs/nonnegative"},
+        "request_count": {"$ref": "#/$defs/nonnegative"},
+        "cohort_count": {"$ref": "#/$defs/nonnegative"},
+        "finding_count": {"$ref": "#/$defs/nonnegative"},
+        "provider_reported_cache_status": {"const": "unavailable"}
+      }
+    },
+    "groups": {"type": "array", "items": {"$ref": "#/$defs/group"}},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}}
+  },
+  "$defs": {
+    "nonnegative": {"type": "integer", "minimum": 0},
+    "positive": {"type": "integer", "minimum": 1},
+    "provider": {"enum": ["anthropic", "openai"]},
+    "safe_path": {
+      "type": "string",
+      "pattern": "^(?:request|context|(?:tools|system|messages)(?:\\[[0-9]+\\])?(?:\\.(?:role|content|name|tool_call_id|tool_calls|type|text|cache_control|prompt_cache_breakpoint)(?:\\[[0-9]+\\])?)*)$"
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "provider", "request_count", "paired_count", "finding_count"],
+      "properties": {
+        "index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "request_count": {"$ref": "#/$defs/positive"},
+        "paired_count": {"$ref": "#/$defs/nonnegative"},
+        "finding_count": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rank", "group_index", "provider", "code", "evidence", "path", "count", "explanation", "action"],
+      "properties": {
+        "rank": {"$ref": "#/$defs/positive"},
+        "group_index": {"$ref": "#/$defs/positive"},
+        "provider": {"$ref": "#/$defs/provider"},
+        "code": {"enum": ["volatile_timestamp", "volatile_identifier", "tool_order_churn", "whitespace_drift", "stable_suffix_after_drift", "unclassified_drift", "context_changed", "coverage_limited", "insufficient_data"]},
+        "evidence": {"enum": ["observed", "candidate", "limited"]},
+        "path": {"$ref": "#/$defs/safe_path"},
+        "count": {"$ref": "#/$defs/positive"},
+        "explanation": {
+          "enum": [
+            "Only valid ISO timestamp tokens changed in the first differing text.",
+            "Only UUID-shaped tokens changed in the first differing text.",
+            "The same tool definitions appear in a different array order.",
+            "The first differing text matches after whitespace runs are collapsed.",
+            "At least two later prompt segments match after an earlier difference.",
+            "The modeled prompt differs without a supported candidate cause.",
+            "Request context differs; the prompt comparison cannot explain its effect.",
+            "Unsupported or opaque content limits this pair's diagnosis.",
+            "Only one request is available for this cohort."
+          ]
+        },
+        "action": {
+          "enum": [
+            "Review whether the changing timestamp can follow reusable instructions.",
+            "Review whether the changing identifier can follow reusable instructions.",
+            "Keep tool order stable when building requests; review behavior before changing it.",
+            "Make formatting deterministic if its exact spacing is not intentional.",
+            "Review whether changing content can follow the reusable prefix.",
+            "Inspect the private source requests and the first divergence.",
+            "Review changed request settings privately before attributing cache behavior.",
+            "Review coverage warnings and unsupported fields privately.",
+            "Collect another comparable request before diagnosing prefix drift."
+          ]
+        }
+      }
+    }
+  }
+}

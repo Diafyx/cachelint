@@ -12,6 +12,7 @@ from cachelint import (
     ComparisonResult,
     CorpusLimits,
     CorpusUsageTrace,
+    DiagnosisLimits,
     IncomparableRequestsError,
     InvalidRequestError,
     Provider,
@@ -30,6 +31,11 @@ from cachelint.baseline import (
     load_corpus_report,
     render_baseline_json,
     render_baseline_text,
+)
+from cachelint.diagnosis_report import (
+    analyze_diagnosis,
+    render_diagnosis_json,
+    render_diagnosis_text,
 )
 from cachelint.regression import (
     evaluate_baseline,
@@ -111,6 +117,30 @@ def build_parser() -> argparse.ArgumentParser:
         ("max-entries", defaults.max_entries),
     ):
         corpus.add_argument(f"--{name}", type=int, default=default, metavar="N")
+    diagnose = commands.add_parser(
+        "diagnose", help="rank safe causes across bounded JSONL request cohorts"
+    )
+    diagnose.add_argument("paths", nargs="+", help="JSONL files or directories")
+    diagnose.add_argument(
+        "--provider", choices=("auto", "anthropic", "openai"), default="auto"
+    )
+    diagnose.add_argument("--format", choices=("text", "json"), default="text")
+    diagnose.add_argument("--output", metavar="PATH")
+    for name, default in (
+        ("max-files", defaults.max_files),
+        ("max-bytes", defaults.max_bytes),
+        ("max-requests", defaults.max_requests),
+        ("max-entries", defaults.max_entries),
+    ):
+        diagnose.add_argument(f"--{name}", type=int, default=default, metavar="N")
+    diagnosis_defaults = DiagnosisLimits()
+    for name, default in (
+        ("max-segments", diagnosis_defaults.max_segments),
+        ("max-nodes", diagnosis_defaults.max_nodes),
+        ("max-text-chars", diagnosis_defaults.max_text_chars),
+        ("max-work-units", diagnosis_defaults.max_work_units),
+    ):
+        diagnose.add_argument(f"--{name}", type=int, default=default, metavar="N")
     usage = commands.add_parser(
         "usage", help="join private request logs with opt-in usage sidecars"
     )
@@ -307,6 +337,34 @@ def main(argv: Sequence[str] | None = None) -> int:
         provider = cast(
             Provider | None, None if args.provider == "auto" else args.provider
         )
+        if args.command == "diagnose":
+            diagnosis_result = analyze_diagnosis(
+                args.paths,
+                provider=provider,
+                corpus_limits=CorpusLimits(
+                    max_files=args.max_files,
+                    max_bytes=args.max_bytes,
+                    max_requests=args.max_requests,
+                    max_entries=args.max_entries,
+                ),
+                diagnosis_limits=DiagnosisLimits(
+                    max_requests=args.max_requests,
+                    max_segments=args.max_segments,
+                    max_nodes=args.max_nodes,
+                    max_text_chars=args.max_text_chars,
+                    max_work_units=args.max_work_units,
+                ),
+            )
+            rendered = (
+                render_diagnosis_json(diagnosis_result)
+                if args.format == "json"
+                else render_diagnosis_text(diagnosis_result)
+            )
+            if args.output is None:
+                print(rendered, end="")
+            else:
+                _write_report(args.output, args.paths, rendered)
+            return 0
         if args.command == "usage":
             traces = [UsageTrace(requests, sidecar) for requests, sidecar in args.trace]
             usage_result = analyze_usage(
@@ -391,7 +449,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         _print_result(result)
     except (InvalidRequestError, IncomparableRequestsError) as error:
-        print(f"cachelint: error: {error}", file=sys.stderr)
+        if args.command == "diagnose":
+            location = (
+                f"line {error.source.line}: "
+                if error.source is not None and error.source.line is not None
+                else ""
+            )
+            print(f"cachelint: error: {location}{error.reason}", file=sys.stderr)
+        else:
+            print(f"cachelint: error: {error}", file=sys.stderr)
         return 2
     except Exception:
         print("cachelint: error: internal failure", file=sys.stderr)

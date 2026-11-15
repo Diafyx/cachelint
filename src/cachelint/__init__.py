@@ -47,6 +47,15 @@ from cachelint.diagnosis import (
     DiagnosisResult,
     diagnose_requests,
 )
+from cachelint.diagnosis_report import (
+    DiagnosisCorpusGroup,
+    DiagnosisCorpusResult,
+    RankedDiagnosisFinding,
+    analyze_diagnosis,
+    diagnosis_report,
+    render_diagnosis_json,
+    render_diagnosis_text,
+)
 from cachelint.regression import default_policy, evaluate_baseline, load_policy
 
 __all__ = [
@@ -61,6 +70,8 @@ __all__ = [
     "CorpusUsageTrace",
     "ContextDifference",
     "Divergence",
+    "DiagnosisCorpusGroup",
+    "DiagnosisCorpusResult",
     "DiagnosisFinding",
     "DiagnosisLimits",
     "DiagnosisResult",
@@ -71,6 +82,7 @@ __all__ = [
     "ObservedFinding",
     "Provider",
     "PrefixEstimate",
+    "RankedDiagnosisFinding",
     "Segment",
     "SourceLocation",
     "UsageGroup",
@@ -80,13 +92,17 @@ __all__ = [
     "UsageTrace",
     "analyze_usage",
     "analyze_corpus",
+    "analyze_diagnosis",
     "analyze_observed_corpus",
     "canonicalize_request",
     "compare_requests",
     "diagnose_requests",
+    "diagnosis_report",
     "baseline_from_report",
     "load_baseline",
     "default_policy",
     "evaluate_baseline",
     "load_policy",
+    "render_diagnosis_json",
+    "render_diagnosis_text",
 ]
