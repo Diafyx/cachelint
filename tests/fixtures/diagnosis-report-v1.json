@@ -1,0 +1,52 @@
+{
+  "findings": [
+    {
+      "action": "Review whether the changing timestamp can follow reusable instructions.",
+      "code": "volatile_timestamp",
+      "count": 1,
+      "evidence": "candidate",
+      "explanation": "Only valid ISO timestamp tokens changed in the first differing text.",
+      "group_index": 1,
+      "path": "system",
+      "provider": "anthropic",
+      "rank": 1
+    },
+    {
+      "action": "Review whether the changing timestamp can follow reusable instructions.",
+      "code": "volatile_timestamp",
+      "count": 1,
+      "evidence": "candidate",
+      "explanation": "Only valid ISO timestamp tokens changed in the first differing text.",
+      "group_index": 2,
+      "path": "messages[0].content",
+      "provider": "openai",
+      "rank": 2
+    }
+  ],
+  "groups": [
+    {
+      "finding_count": 1,
+      "index": 1,
+      "paired_count": 1,
+      "provider": "anthropic",
+      "request_count": 2
+    },
+    {
+      "finding_count": 1,
+      "index": 2,
+      "paired_count": 1,
+      "provider": "openai",
+      "request_count": 2
+    }
+  ],
+  "report_type": "cachelint.diagnosis",
+  "schema_version": 1,
+  "summary": {
+    "byte_count": 564,
+    "cohort_count": 2,
+    "file_count": 2,
+    "finding_count": 2,
+    "provider_reported_cache_status": "unavailable",
+    "request_count": 4
+  }
+}
