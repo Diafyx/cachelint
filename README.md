@@ -21,6 +21,9 @@ Explicit [regression policies](docs/regression.md) can check selected changes
 without treating a modeled prefix as a verified cache hit.
 The [CI regression example](docs/ci-regression.md) exports safe JSON and
 Markdown reports from a synthetic two-provider workload.
+The development Python API also offers bounded, privacy-safe
+[prefix-drift diagnosis](docs/diagnosis.md) for supported recurring causes.
+It is scheduled for 0.3.0a1 and is not part of the published 0.2.0a3 package.
 
 The `0.2.0a2` series adds opt-in provider cache-usage counters in a
 separate private SDK-recording sidecar and joins them with modeled corpus

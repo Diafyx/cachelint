@@ -41,6 +41,12 @@ from cachelint._observed import (
 )
 from cachelint._version import __version__
 from cachelint.baseline import baseline_from_report, load_baseline
+from cachelint.diagnosis import (
+    DiagnosisFinding,
+    DiagnosisLimits,
+    DiagnosisResult,
+    diagnose_requests,
+)
 from cachelint.regression import default_policy, evaluate_baseline, load_policy
 
 __all__ = [
@@ -55,6 +61,9 @@ __all__ = [
     "CorpusUsageTrace",
     "ContextDifference",
     "Divergence",
+    "DiagnosisFinding",
+    "DiagnosisLimits",
+    "DiagnosisResult",
     "Finding",
     "IncomparableRequestsError",
     "InvalidRequestError",
@@ -74,6 +83,7 @@ __all__ = [
     "analyze_observed_corpus",
     "canonicalize_request",
     "compare_requests",
+    "diagnose_requests",
     "baseline_from_report",
     "load_baseline",
     "default_policy",
