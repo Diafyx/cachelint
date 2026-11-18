@@ -41,6 +41,14 @@ from cachelint._observed import (
 )
 from cachelint._version import __version__
 from cachelint.baseline import baseline_from_report, load_baseline
+from cachelint.breakpoints import (
+    BreakpointAuditResult,
+    BreakpointFinding,
+    BreakpointLimits,
+    audit_breakpoints,
+    render_breakpoint_json,
+    render_breakpoint_text,
+)
 from cachelint.diagnosis import (
     DiagnosisFinding,
     DiagnosisLimits,
@@ -61,6 +69,9 @@ from cachelint.regression import default_policy, evaluate_baseline, load_policy
 __all__ = [
     "__version__",
     "CanonicalRequest",
+    "BreakpointAuditResult",
+    "BreakpointFinding",
+    "BreakpointLimits",
     "ComparisonResult",
     "CorpusGroup",
     "CorpusLimits",
@@ -91,6 +102,7 @@ __all__ = [
     "UsageResult",
     "UsageTrace",
     "analyze_usage",
+    "audit_breakpoints",
     "analyze_corpus",
     "analyze_diagnosis",
     "analyze_observed_corpus",
@@ -105,4 +117,6 @@ __all__ = [
     "load_policy",
     "render_diagnosis_json",
     "render_diagnosis_text",
+    "render_breakpoint_json",
+    "render_breakpoint_text",
 ]
