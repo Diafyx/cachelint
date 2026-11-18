@@ -2,8 +2,8 @@
 
 ## Status
 
-Accepted for the 0.3.0a1 development series. The Python classifier lands in
-issue #62; issue #63 adds a CLI and a separately versioned report. This ADR
+Accepted for the 0.3.0a1 development series. The Python classifier was added in
+issue #62; issue #63 added a CLI and a separately versioned report. This ADR
 does not change existing comparison, corpus, baseline, or regression schemas.
 
 ## Context

@@ -108,6 +108,7 @@ jobs:
           cp tools/smoke_observed_release.py "$RUNNER_TEMP/smoke_observed_release.py"
           cp tools/smoke_regression_release.py "$RUNNER_TEMP/smoke_regression_release.py"
           cp -r examples/regression-ci "$RUNNER_TEMP/regression-fixture"
+          cp -r examples/diagnosis "$RUNNER_TEMP/diagnosis-fixture"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "from importlib.metadata import version; import cachelint; assert cachelint.__version__ == version('cachelint')"
           "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" --help
@@ -134,6 +135,12 @@ jobs:
           "$RUNNER_TEMP/cachelint-sdist-smoke/bin/python" smoke_observed_release.py
           "$RUNNER_TEMP/cachelint-smoke/bin/python" smoke_regression_release.py regression-fixture
           "$RUNNER_TEMP/cachelint-sdist-smoke/bin/python" smoke_regression_release.py regression-fixture
+          "$RUNNER_TEMP/cachelint-smoke/bin/python" -I diagnosis-fixture/smoke.py
+          "$RUNNER_TEMP/cachelint-sdist-smoke/bin/python" -I diagnosis-fixture/smoke.py
+          "$RUNNER_TEMP/cachelint-smoke/bin/cachelint" diagnose diagnosis-fixture/anthropic.jsonl diagnosis-fixture/openai.jsonl --format json --output diagnosis-wheel.json
+          "$RUNNER_TEMP/cachelint-sdist-smoke/bin/cachelint" diagnose diagnosis-fixture/anthropic.jsonl diagnosis-fixture/openai.jsonl --format json --output diagnosis-sdist.json
+          cmp diagnosis-wheel.json diagnosis-sdist.json
+          "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from importlib.resources import files; report=json.load(open('diagnosis-wheel.json')); assert report['summary']['request_count']==4 and [f['code'] for f in report['findings']]==['volatile_timestamp','volatile_identifier']; schema=json.loads(files('cachelint').joinpath('diagnosis_report_v1.schema.json').read_text()); assert schema['properties']['schema_version']=={'const':1}"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from pathlib import Path; from importlib.resources import files; a=json.loads(Path('corpus-wheel.json').read_text()); b=json.loads(Path('corpus-sdist.json').read_text()); assert a==b and a['schema_version']==1 and a['patterns'][0]['path']=='system'; assert json.loads(files('cachelint').joinpath('corpus_report_v1.schema.json').read_text())['properties']['schema_version']=={'const':1}"
           "$RUNNER_TEMP/cachelint-smoke/bin/python" -c "import json; from importlib.resources import files; assert json.loads(files('cachelint').joinpath('baseline_v1.schema.json').read_text())['properties']['schema_version']=={'const':1}"
           "$RUNNER_TEMP/cachelint-sdk-smoke/bin/python" -m pytest -q test_recording_sdk.py

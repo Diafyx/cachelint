@@ -94,6 +94,9 @@ def inspect(dist_dir: Path) -> None:
             "cachelint/baseline_v1.schema.json",
             "cachelint/regression.py",
             "cachelint/regression_policy_v1.schema.json",
+            "cachelint/diagnosis.py",
+            "cachelint/diagnosis_report.py",
+            "cachelint/diagnosis_report_v1.schema.json",
             "cachelint/py.typed",
             "cachelint/cache_rules.json",
             "cachelint/corpus_report_v1.schema.json",
@@ -121,6 +124,11 @@ def inspect(dist_dir: Path) -> None:
             "const": 1
         }:
             raise ValueError("Wheel regression policy schema is invalid")
+        diagnosis_schema = json.loads(
+            wheel.read("cachelint/diagnosis_report_v1.schema.json")
+        )
+        if diagnosis_schema.get("properties", {}).get("schema_version") != {"const": 1}:
+            raise ValueError("Wheel diagnosis report schema is invalid")
         usage_schema = json.loads(wheel.read("cachelint/usage_sidecar_v1.schema.json"))
         if usage_schema.get("properties", {}).get("schema_version") != {"const": 1}:
             raise ValueError("Wheel usage sidecar schema is invalid")
@@ -156,6 +164,12 @@ def inspect(dist_dir: Path) -> None:
             "docs/baselines.md",
             "docs/regression.md",
             "docs/ci-regression.md",
+            "docs/diagnosis.md",
+            "docs/design/0007-prefix-drift-diagnosis-contract.md",
+            "docs/releases/0.3.0a1.md",
+            "examples/diagnosis/anthropic.jsonl",
+            "examples/diagnosis/openai.jsonl",
+            "examples/diagnosis/smoke.py",
             "examples/regression-ci/reviewed-requests.jsonl",
             "examples/regression-ci/current-requests.jsonl",
             "examples/regression-ci/reviewed-baseline.json",
@@ -184,6 +198,9 @@ def inspect(dist_dir: Path) -> None:
             "src/cachelint/baseline_v1.schema.json",
             "src/cachelint/regression.py",
             "src/cachelint/regression_policy_v1.schema.json",
+            "src/cachelint/diagnosis.py",
+            "src/cachelint/diagnosis_report.py",
+            "src/cachelint/diagnosis_report_v1.schema.json",
             "src/cachelint/py.typed",
             "src/cachelint/cache_rules.json",
             "src/cachelint/corpus_report_v1.schema.json",
@@ -221,6 +238,13 @@ def inspect(dist_dir: Path) -> None:
             "properties", {}
         ).get("schema_version") != {"const": 1}:
             raise ValueError("Sdist regression policy schema is invalid")
+        diagnosis_schema_file = sdist.extractfile(
+            f"cachelint-{version}/src/cachelint/diagnosis_report_v1.schema.json"
+        )
+        if diagnosis_schema_file is None or json.load(diagnosis_schema_file).get(
+            "properties", {}
+        ).get("schema_version") != {"const": 1}:
+            raise ValueError("Sdist diagnosis report schema is invalid")
         usage_schema_file = sdist.extractfile(
             f"cachelint-{version}/src/cachelint/usage_sidecar_v1.schema.json"
         )

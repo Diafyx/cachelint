@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-VERSION = "0.2.0a3"
+VERSION = "0.3.0a1"
 WHEEL = f"cachelint-{VERSION}-py3-none-any.whl"
 SDIST = f"cachelint-{VERSION}.tar.gz"
 FILES = {WHEEL, SDIST}

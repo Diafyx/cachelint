@@ -2,8 +2,7 @@
 
 The `diagnose` command classifies supported differences within Anthropic
 Messages and OpenAI Chat Completions cohorts. It runs offline on private JSONL
-request bodies. The command and report are planned for 0.3.0a1; the published
-0.2.0a3 release does not contain them.
+request bodies. The command and report are included in 0.3.0a1.
 
 ~~~console
 cachelint diagnose examples/diagnosis/anthropic.jsonl examples/diagnosis/openai.jsonl
