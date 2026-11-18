@@ -27,6 +27,13 @@ the `diagnose_requests` and `analyze_diagnosis` Python APIs, and a separately
 versioned report. These classify supported candidate causes with fixed advice;
 they do not determine provider cache hits or misses.
 
+Development toward `0.3.0a2` adds an offline Anthropic
+[cache-control placement audit](docs/breakpoints.md) through
+`audit_breakpoints` and `cachelint breakpoints`. It distinguishes supported
+invalid controls, adequate modeled placement, and plausible missed reuse
+without rewriting a request or claiming a provider cache hit. This feature is
+not part of the `0.3.0a1` release candidate.
+
 The `0.2.0a2` series adds opt-in provider cache-usage counters in a
 separate private SDK-recording sidecar and joins them with modeled corpus
 findings. The raw request JSONL format stays analyzer-compatible. See the

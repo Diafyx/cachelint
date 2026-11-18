@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Diafyx/cachelint/blob/main/src/cachelint/breakpoint_report_v1.schema.json",
+  "title": "cachelint Anthropic breakpoint audit v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_type", "rules_reviewed_on", "request_count", "control_mode", "stable_prefix_blocks", "stable_boundary_path", "minimum_comparison", "findings"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "report_type": {"const": "cachelint.breakpoints"},
+    "rules_reviewed_on": {"const": "2026-11-18"},
+    "request_count": {"type": "integer", "minimum": 1},
+    "control_mode": {"enum": ["none", "automatic", "explicit", "mixed", "varied"]},
+    "stable_prefix_blocks": {"type": "integer", "minimum": 0},
+    "stable_boundary_path": {"oneOf": [{"$ref": "#/$defs/safe_path"}, {"type": "null"}]},
+    "minimum_comparison": {"enum": ["estimate_below", "estimate_at_or_above", "unknown"]},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}}
+  },
+  "$defs": {
+    "safe_path": {
+      "type": "string",
+      "pattern": "^(?:request|cache_control|tools\\[[0-9]+\\](?:\\.cache_control)?|system(?:\\[[0-9]+\\])?(?:\\.cache_control)?|messages\\[[0-9]+\\](?:\\.cache_control|\\.content(?:\\[[0-9]+\\])?(?:\\.cache_control)?)?)$"
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "evidence", "path", "count", "explanation", "action"],
+      "properties": {
+        "code": {"enum": ["invalid_control", "unsupported_position", "too_many_breakpoints", "ttl_order", "automatic_conflict", "automatic_no_target", "coverage_limited", "context_changed", "insufficient_data", "unknown_minimum", "short_stable_prefix", "no_stable_boundary", "adequate_placement", "plausible_missed_reuse", "lookback_window"]},
+        "evidence": {"enum": ["observed", "candidate", "limited"]},
+        "path": {"$ref": "#/$defs/safe_path"},
+        "count": {"type": "integer", "minimum": 1},
+        "explanation": {"type": "string"},
+        "action": {"type": "string"}
+      }
+    }
+  }
+}

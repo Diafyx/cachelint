@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "platform": "Claude API",
+  "reviewed_on": "2026-11-18",
+  "source": "https://platform.claude.com/docs/en/build-with-claude/prompt-caching",
+  "automatic_field": "cache_control",
+  "explicit_positions": ["tools[*]", "system[*]", "messages[*].content[*]"],
+  "max_breakpoints": 4,
+  "lookback_positions": 20,
+  "ttl_order": ["1h", "5m"]
+}

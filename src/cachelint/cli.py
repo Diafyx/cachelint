@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import cast
 
 from cachelint import (
+    BreakpointLimits,
     ComparisonResult,
     CorpusLimits,
     CorpusUsageTrace,
@@ -22,7 +23,10 @@ from cachelint import (
     analyze_corpus,
     analyze_observed_corpus,
     analyze_usage,
+    audit_breakpoints,
     compare_requests,
+    render_breakpoint_json,
+    render_breakpoint_text,
 )
 from cachelint._ingest import read_json, read_jsonl
 from cachelint.baseline import (
@@ -141,6 +145,22 @@ def build_parser() -> argparse.ArgumentParser:
         ("max-work-units", diagnosis_defaults.max_work_units),
     ):
         diagnose.add_argument(f"--{name}", type=int, default=default, metavar="N")
+    breakpoints = commands.add_parser(
+        "breakpoints", help="audit Anthropic cache controls in one JSONL cohort"
+    )
+    breakpoints.add_argument("path", help="private Anthropic request JSONL file")
+    breakpoints.add_argument("--format", choices=("text", "json"), default="text")
+    breakpoints.add_argument("--output", metavar="PATH")
+    breakpoint_defaults = BreakpointLimits()
+    breakpoints.add_argument(
+        "--max-requests",
+        type=int,
+        default=breakpoint_defaults.max_requests,
+        metavar="N",
+    )
+    breakpoints.add_argument(
+        "--max-blocks", type=int, default=breakpoint_defaults.max_blocks, metavar="N"
+    )
     usage = commands.add_parser(
         "usage", help="join private request logs with opt-in usage sidecars"
     )
@@ -333,6 +353,27 @@ def main(argv: Sequence[str] | None = None) -> int:
                         render_regression_markdown(regression_result),
                     )
                 return 3 if regression_result["status"] == "fail" else 0
+            return 0
+        if args.command == "breakpoints":
+            path = Path(args.path)
+            try:
+                if path.is_symlink() or path.stat().st_size > 16 * 1024 * 1024:
+                    raise InvalidRequestError("unsafe or oversized input file")
+            except OSError:
+                raise InvalidRequestError("unreadable input file") from None
+            breakpoint_result = audit_breakpoints(
+                read_jsonl(path, provider="anthropic"),
+                limits=BreakpointLimits(args.max_requests, args.max_blocks),
+            )
+            rendered = (
+                render_breakpoint_json(breakpoint_result)
+                if args.format == "json"
+                else render_breakpoint_text(breakpoint_result)
+            )
+            if args.output is None:
+                print(rendered, end="")
+            else:
+                _write_report(args.output, [args.path], rendered)
             return 0
         provider = cast(
             Provider | None, None if args.provider == "auto" else args.provider
